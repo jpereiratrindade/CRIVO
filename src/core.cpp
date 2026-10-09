@@ -269,14 +269,20 @@ std::string query_json(const std::string& path,const std::string& name) {
   }
   throw std::runtime_error("Consulta nao suportada: "+name);
 }
-void serve(const std::string& db,const std::string& web_directory,unsigned short port) {
+void serve(const std::string& db,const std::string& web_directory,
+           const std::string& bind_address,unsigned short port) {
   namespace asio=boost::asio;
   namespace beast=boost::beast;
   namespace http=beast::http;
   using tcp=asio::ip::tcp;
   asio::io_context context(1);
-  tcp::acceptor acceptor(context,{asio::ip::make_address("127.0.0.1"),port});
-  std::cout<<"CRIVO SisTer Web http://127.0.0.1:"<<port<<" (somente leitura / loopback)\n";
+  beast::error_code address_error;
+  const auto address=asio::ip::make_address(bind_address,address_error);
+  if(address_error)
+    throw std::runtime_error("Endereco de bind invalido: "+bind_address);
+  tcp::acceptor acceptor(context,{address,port});
+  std::cout<<"CRIVO SisTer Web http://"<<bind_address<<":"<<port
+           <<" (somente leitura)\n";
   for (;;) {
     tcp::socket socket(context);
     acceptor.accept(socket);

@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
     }
     const std::string command = argv[1];
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
+    std::string bind_address = "127.0.0.1";
     unsigned short port = 8765;
     for (int i=2; i<argc; ++i) {
       std::string a=argv[i];
@@ -19,6 +20,7 @@ int main(int argc, char** argv) {
       else if (a=="--file" && i+1<argc) file=argv[++i];
       else if (a=="--web" && i+1<argc) web=argv[++i];
       else if (a=="--profile" && i+1<argc) profile=argv[++i];
+      else if (a=="--bind" && i+1<argc) bind_address=argv[++i];
       else if (a=="--port" && i+1<argc) { const auto n=std::stoi(argv[++i]); if(n<1 || n>65535) throw std::runtime_error("Porta invalida"); port=static_cast<unsigned short>(n); }
       else throw std::runtime_error("Argumento desconhecido: " + a);
     }
@@ -42,7 +44,7 @@ int main(int argc, char** argv) {
     if (command=="runs") { std::cout<<crivo::query_json(db,"runs")<<"\n"; return 0; }
     if (command=="serve") {
       if(!std::filesystem::exists(db)) throw std::runtime_error("Banco ausente; execute crivo init antes de serve");
-      crivo::serve(db,web,port); return 0;
+      crivo::serve(db,web,bind_address,port); return 0;
     }
     throw std::runtime_error("Comando desconhecido: "+command);
   } catch (const std::exception& e) { std::cerr<<"CRIVO ERROR: "<<e.what()<<"\n"; return 2; }

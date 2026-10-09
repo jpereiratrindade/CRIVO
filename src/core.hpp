@@ -12,6 +12,7 @@ void register_catalog(const std::string& db, const std::vector<TestDefinition>& 
 std::string serialize_catalog(const std::vector<TestDefinition>& catalog);
 std::string query_json(const std::string& db, const std::string& name);
 int run_profile(const std::string& db, const std::string& catalog_file, const std::string& profile);
-void serve(const std::string& db, const std::string& web_directory, unsigned short port);
+void serve(const std::string& db, const std::string& web_directory,
+           const std::string& bind_address, unsigned short port);
 std::string json_escape(const std::string& s);
 }

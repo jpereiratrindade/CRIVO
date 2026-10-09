@@ -11,6 +11,33 @@ Primeiro esqueleto executável em C++26, SQLite3 WAL, HTTP local de leitura e in
 
 ## Como executar
 
+### Script único (recomendado)
+
+O script detecta a ausência do Boost no host e usa automaticamente a Toolbox
+`crivo-dev` (ou a indicada por `CRIVO_TOOLBOX`):
+
+```bash
+./crivo.sh setup
+./crivo.sh run
+./crivo.sh serve
+```
+
+Acesso local: `http://127.0.0.1:8765`.
+
+Para consultar pela rede local:
+
+```bash
+./crivo.sh status
+./crivo.sh serve-lan
+```
+
+Abra `http://IP-DA-MAQUINA:8765` em outro dispositivo. O servidor LAN continua
+somente leitura, mas ainda não possui autenticação nem TLS: use apenas em rede
+confiável e não encaminhe essa porta no roteador. O firewall do host pode exigir
+liberação local deliberada da porta TCP 8765.
+
+### Comandos manuais
+
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j2

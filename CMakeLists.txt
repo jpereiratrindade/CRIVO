@@ -18,6 +18,7 @@ add_executable(crivo
   src/registry/applicability.cpp
   src/registry/plan.cpp
   src/registry/lifecycle.cpp
+  src/adapters/ctest_adapter.cpp
 )
 
 target_include_directories(crivo PRIVATE src)
@@ -26,6 +27,15 @@ target_compile_definitions(crivo PRIVATE BOOST_ERROR_CODE_HEADER_ONLY BOOST_JSON
 target_compile_options(crivo PRIVATE -Wall -Wextra -Wpedantic)
 
 enable_testing()
+
+# Configuração da fixture sintética local para testes do adaptador E4
+set(SYNTHETIC_FIXTURE_SRC ${CMAKE_SOURCE_DIR}/tests/fixtures/ctest)
+set(SYNTHETIC_FIXTURE_BUILD ${CMAKE_BINARY_DIR}/synthetic_fixture)
+
+add_custom_target(configure_synthetic_fixture ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${SYNTHETIC_FIXTURE_BUILD}
+  COMMAND ${CMAKE_COMMAND} -S ${SYNTHETIC_FIXTURE_SRC} -B ${SYNTHETIC_FIXTURE_BUILD} -DCMAKE_BUILD_TYPE=Debug
+)
 
 # Testes de regressão v0.1.0 (preservados intactos)
 add_test(NAME crivo_selftest COMMAND crivo selftest --file ${CMAKE_SOURCE_DIR}/catalog/tests.json)
@@ -102,3 +112,13 @@ set_tests_properties(e3_events_missing_entity_ref PROPERTIES WILL_FAIL TRUE)
 
 add_test(NAME e3_events_reconcile_orphans COMMAND crivo events reconcile --db ${CMAKE_BINARY_DIR}/e3_events.db)
 set_tests_properties(e3_events_reconcile_orphans PROPERTIES PASS_REGULAR_EXPRESSION "CRIVO RECONCILIATION PASS")
+
+# Testes de Aceite E4 — Adaptador CTest e Execução Isolada de Fixture Sintética
+add_test(NAME e4_ctest_discover_synthetic COMMAND crivo adapter ctest discover --build ${SYNTHETIC_FIXTURE_BUILD} --project synthetic-pilot)
+set_tests_properties(e4_ctest_discover_synthetic PROPERTIES PASS_REGULAR_EXPRESSION "\"total_discovered\":3")
+
+add_test(NAME e4_ctest_run_synthetic COMMAND crivo adapter ctest run --build ${SYNTHETIC_FIXTURE_BUILD} --evidence-dir ${CMAKE_BINARY_DIR}/synthetic_evidence --project synthetic-pilot)
+set_tests_properties(e4_ctest_run_synthetic PROPERTIES PASS_REGULAR_EXPRESSION "\"adapter\":\"ctest\"")
+
+add_test(NAME e4_ctest_reject_nonexistent_build COMMAND crivo adapter ctest discover --build ${CMAKE_BINARY_DIR}/nonexistent_build_dir)
+set_tests_properties(e4_ctest_reject_nonexistent_build PROPERTIES WILL_FAIL TRUE)

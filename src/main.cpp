@@ -3,6 +3,7 @@
 #include "registry/importer.hpp"
 #include "registry/plan.hpp"
 #include "registry/lifecycle.hpp"
+#include "adapters/ctest_adapter.hpp"
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -26,13 +27,14 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|serve|selftest|registry|plan|events> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
     std::string services_action, service_id;
     std::string registry_action;
     std::string events_action;
+    std::string adapter_type, adapter_action;
     int option_start = 2;
 
     if (command == "services") {
@@ -60,6 +62,15 @@ int main(int argc, char** argv) {
       if (events_action != "list" && events_action != "record" && events_action != "reconcile") {
         throw std::runtime_error("Acao de events desconhecida: " + events_action);
       }
+    } else if (command == "adapter") {
+      if (argc < 4) throw std::runtime_error("Uso: crivo adapter <ctest> <discover|run> [opcoes]");
+      adapter_type = argv[2];
+      adapter_action = argv[3];
+      option_start = 4;
+      if (adapter_type != "ctest") throw std::runtime_error("Tipo de adaptador desconhecido: " + adapter_type);
+      if (adapter_action != "discover" && adapter_action != "run") {
+        throw std::runtime_error("Acao de adaptador desconhecida: " + adapter_action);
+      }
     }
 
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
@@ -73,6 +84,9 @@ int main(int argc, char** argv) {
     std::string event_type = "";
     std::string cause = "manual_registration";
     std::string authority_ref = "local-cli";
+    std::string build_dir = "build";
+    std::string evidence_dir = ".run/evidence";
+    std::string project_id = "local-project";
     bool dry_run = false;
     bool closed_world = false;
     bool fail_closed = false;
@@ -83,6 +97,9 @@ int main(int argc, char** argv) {
       if (a == "--db" && i + 1 < argc) db = argv[++i];
       else if (a == "--file" && i + 1 < argc) { file = argv[++i]; target_file = file; }
       else if (a == "--dir" && i + 1 < argc) catalog_dir = argv[++i];
+      else if (a == "--build" && i + 1 < argc) build_dir = argv[++i];
+      else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
+      else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
       else if (a == "--web" && i + 1 < argc) web = argv[++i];
       else if (a == "--profile" && i + 1 < argc) profile = argv[++i];
       else if (a == "--bind" && i + 1 < argc) bind_address = argv[++i];
@@ -186,7 +203,6 @@ int main(int argc, char** argv) {
       }
     }
     if (command == "plan") {
-      // Carregar coleção completa
       crivo::registry::RegistryCollection collection;
       crivo::registry::ValidationReport report;
       std::vector<std::string> subdirs = {"references", "techniques", "specifications", "implementations", "profiles"};
@@ -206,7 +222,6 @@ int main(int argc, char** argv) {
         return 2;
       }
 
-      // Localizar perfil solicitado
       const crivo::registry::ProfileRecord* target_profile = nullptr;
       for (const auto& [k, p] : collection.profiles) {
         if (p.id == profile) {
@@ -226,7 +241,6 @@ int main(int argc, char** argv) {
         auto caps = split_comma(supported_caps_str);
         for (const auto& c : caps) env.supported.insert(c);
       } else {
-        // Capacidades padrão de teste local se não fornecidas explicitamente
         std::set<std::string> default_caps = {
           "capability:sqlite",
           "capability:json_parser",
@@ -297,6 +311,28 @@ int main(int argc, char** argv) {
         std::cout << "CRIVO RECONCILIATION PASS: " << rec_count << " execucoes orfas reconciliadas.\n";
         sqlite3_close(db_handle);
         return 0;
+      }
+    }
+    if (command == "adapter") {
+      if (adapter_type == "ctest") {
+        if (adapter_action == "discover") {
+          auto disc = crivo::adapters::discover_ctest(build_dir, project_id);
+          if (!disc.success) {
+            std::cerr << "CRIVO ADAPTER CTEST DISCOVER FAILED: " << disc.error_message << "\n";
+            return 2;
+          }
+          std::cout << crivo::adapters::serialize_discovery_json(disc) << "\n";
+          return 0;
+        }
+        if (adapter_action == "run") {
+          auto res = crivo::adapters::run_ctest(build_dir, evidence_dir, project_id);
+          if (!res.success) {
+            std::cerr << "CRIVO ADAPTER CTEST RUN FAILED: " << res.error_message << "\n";
+            return 2;
+          }
+          std::cout << res.evidence_json_content << "\n";
+          return 0;
+        }
       }
     }
     throw std::runtime_error("Comando desconhecido: " + command);

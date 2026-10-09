@@ -346,3 +346,10 @@ add_test(NAME e12_01_all_builtin_oracles_pass COMMAND bash ${CMAKE_SOURCE_DIR}/t
 add_test(NAME e12_02_automatic_project_qualification COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run-project-qualification.sh
   ${CMAKE_SOURCE_DIR} ${E12_DIR} ${CMAKE_BINARY_DIR}/crivo)
 set_tests_properties(e12_02_automatic_project_qualification PROPERTIES DEPENDS e12_01_all_builtin_oracles_pass)
+
+# E12-03: executores ativos geram TSan, SBOM, SARIF, proveniencia e HTTP sem insumos pre-existentes
+set(E12_ACTIVE_CLEAN_DIR ${CMAKE_BINARY_DIR}/e12_active_clean)
+add_test(NAME e12_03_active_executors_without_preexisting_artifacts COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run-active-executors-qualification.sh
+  ${CMAKE_SOURCE_DIR} ${E12_ACTIVE_CLEAN_DIR} ${CMAKE_BINARY_DIR}/crivo)
+set_tests_properties(e12_03_active_executors_without_preexisting_artifacts PROPERTIES DEPENDS e12_02_automatic_project_qualification)
+

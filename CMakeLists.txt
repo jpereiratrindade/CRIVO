@@ -341,3 +341,8 @@ file(REMOVE_RECURSE ${E12_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/tests/fixtures/all_oracles/ DESTINATION ${E12_DIR})
 add_test(NAME e12_01_all_builtin_oracles_pass COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run-all-oracles.sh
   ${CMAKE_BINARY_DIR}/crivo ${CMAKE_SOURCE_DIR}/catalog ${E12_DIR} ${CMAKE_BINARY_DIR}/all_oracles_evidence)
+
+# E12-02: um unico comando descobre, compila, testa, evidencia e informa a decisao
+add_test(NAME e12_02_automatic_project_qualification COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run-project-qualification.sh
+  ${CMAKE_SOURCE_DIR} ${E12_DIR} ${CMAKE_BINARY_DIR}/crivo)
+set_tests_properties(e12_02_automatic_project_qualification PROPERTIES DEPENDS e12_01_all_builtin_oracles_pass)

@@ -6,10 +6,13 @@ TOOLBOX_NAME=${CRIVO_TOOLBOX:-crivo-dev}
 
 if [[ ${1:-} == "--inside-toolbox" ]]; then
   shift
-elif [[ ( ${1:-} == "pilot-project" || ${1:-} == "verify-project" ) ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
+elif [[ ( ${1:-} == "pilot-project" || ${1:-} == "verify-project" || ${1:-} == "qualify-project" ) ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   "$SCRIPT_DIR/crivo.sh" build
   if [[ ${1:-} == "verify-project" ]]; then
     exec "$SCRIPT_DIR/scripts/project-verify.sh" "${2:-}"
+  fi
+  if [[ ${1:-} == "qualify-project" ]]; then
+    exec "$SCRIPT_DIR/scripts/project-qualify.sh" "${2:-}" "${3:-complete-international-benchmark}"
   fi
   exec "$SCRIPT_DIR/scripts/project-pilot.sh" "${2:-}"
 elif [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
@@ -69,6 +72,7 @@ Uso: ./crivo.sh [comando]
   events      Lista trilha de auditoria e eventos de ciclo de vida
   pilot-project <manifesto> Executa projeto externo declarado, em modo shadow
   verify-project <manifesto> Executa testes CRIVO-native; alvo nao precisa ter testes
+  qualify-project <diretorio> [perfil] Descobre, compila, testa, evidencia e classifica um alvo
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
@@ -155,6 +159,10 @@ case "$COMMAND" in
   verify-project)
     build
     exec "$SCRIPT_DIR/scripts/project-verify.sh" "${2:-}"
+    ;;
+  qualify-project)
+    build
+    exec "$SCRIPT_DIR/scripts/project-qualify.sh" "${2:-}" "${3:-complete-international-benchmark}"
     ;;
   init)
     ensure_binary

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crivo.local/schemas/qualification-summary/1.0.0.schema.json",
+  "title": "CRIVO automated project qualification summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "target_path", "source_revision", "source_worktree", "profile", "status", "adapter_exit_code", "check_exit_code", "adapter_result", "check_result", "test_contracts", "findings", "learning_status", "next_action"],
+  "properties": {
+    "schema_version": {"const": "crivo.qualification-summary/1.0.0"},
+    "project_id": {"type": "string", "minLength": 1},
+    "target_path": {"type": "string", "minLength": 1},
+    "source_revision": {"type": "string", "minLength": 1},
+    "source_worktree": {"enum": ["clean", "dirty"]},
+    "profile": {"type": "string", "minLength": 1},
+    "status": {"enum": ["PASS", "FAIL", "BLOCKED", "NO_TESTS"]},
+    "adapter_exit_code": {"type": "integer", "minimum": 0},
+    "check_exit_code": {"type": "integer", "minimum": 0},
+    "adapter_result": {"type": ["object", "null"]},
+    "check_result": {"type": "object"},
+    "test_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["specification", "stimulus", "expected_behavior"],
+        "properties": {
+          "specification": {"type": "string", "minLength": 1},
+          "stimulus": {"type": "object"},
+          "expected_behavior": {"type": "object"}
+        }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failed", "blocked", "not_applicable"],
+      "properties": {
+        "failed": {"type": "integer", "minimum": 0},
+        "blocked": {"type": "integer", "minimum": 0},
+        "not_applicable": {"type": "integer", "minimum": 0}
+      }
+    },
+    "learning_status": {"enum": ["REVIEW_REQUIRED", "INSUFFICIENT_EVIDENCE"]},
+    "next_action": {"type": "string", "minLength": 1}
+  }
+}

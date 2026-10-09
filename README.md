@@ -92,12 +92,24 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
 ### Aplicar matriz internacional completa
 
 ```bash
+./crivo.sh qualify-project /caminho/do/sistema
+
+# forma de baixo nivel:
 ./build/crivo check \
   --target /caminho/do/sistema \
   --profile complete-international-benchmark \
   --catalog catalog \
   --evidence-dir .run/evidence
 ```
+
+`qualify-project` é a porta automática: identifica revisão e estado do Git,
+configura e compila projetos CMake, executa CTest pelo adaptador, aplica o perfil
+internacional e grava `qualification-summary.json` com decisão, falhas, bloqueios,
+inaplicabilidades, evidências e próxima ação. Cada `test_contract` explicita o
+estímulo aplicado e o comportamento esperado (oráculo) antes da comparação. O sistema analisado não precisa
+conhecer o CRIVO. Memória nunca é promovida silenciosamente: um resultado aprovado
+fica como `REVIEW_REQUIRED`; falha ou ausência de prova fica como
+`INSUFFICIENT_EVIDENCE`.
 
 Os 11 oráculos builtin estão qualificados. CRIVO usa artefatos observáveis: bancos
 SQLite (`.db`, `.sqlite`), SARIF, CycloneDX SBOM, relatório TSan, pacotes de

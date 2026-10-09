@@ -13,7 +13,7 @@
     "isolation": "ephemeral",
     "network": "loopback_only"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_http_readonly_checker",
   "notes": "Executa requisições GET e POST em servidor local efêmero."
 }

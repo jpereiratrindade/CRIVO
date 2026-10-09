@@ -13,7 +13,7 @@
     "isolation": "process_isolated",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_check_sarif_export",
   "notes": "Test harness para verificacao de saida em formato SARIF v2.1.0."
 }

@@ -44,5 +44,5 @@
   "applicability": [
     "capability:posix_threads"
   ],
-  "qualification": "candidate"
+  "qualification": "qualified"
 }

@@ -13,7 +13,7 @@
     "isolation": "process_isolated",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_check_concurrency_tsan",
   "notes": "Verificador automatizado de data race com Clang ThreadSanitizer."
 }

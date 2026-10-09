@@ -13,7 +13,7 @@
     "isolation": "ephemeral",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_sqlite_wal_concurrency_checker",
   "notes": "Executa leituras simultâneas multi-thread sobre banco de dados em modo WAL verificando ausência de bloqueios."
 }

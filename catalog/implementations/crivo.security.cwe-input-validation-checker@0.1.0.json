@@ -12,7 +12,7 @@
     "isolation": "process_isolated",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_check_input_validation_cwe",
   "notes": "Verificacao de sanitizacao de entrada e rejeicao de SQLi e path traversal."
 }

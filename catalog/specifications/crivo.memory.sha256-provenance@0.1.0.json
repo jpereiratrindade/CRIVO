@@ -45,5 +45,5 @@
   "applicability": [
     "capability:filesystem"
   ],
-  "qualification": "candidate"
+  "qualification": "qualified"
 }

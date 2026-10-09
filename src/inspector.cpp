@@ -3,6 +3,7 @@
 #include "registry/validator.hpp"
 #include "registry/plan.hpp"
 #include "registry/lifecycle.hpp"
+#include "builtin_oracles.hpp"
 #include <boost/json.hpp>
 #include <chrono>
 #include <filesystem>
@@ -147,6 +148,9 @@ TargetInfo inspect_target(const fs::path& target_path) {
     bool has_rust = false;
     bool has_js_ts = false;
     bool has_http = false;
+    bool has_http_observations = false;
+    bool has_cyclonedx = false;
+    bool has_tsan = false;
 
     for (const auto& entry : fs::recursive_directory_iterator(info.root_path, fs::directory_options::skip_permission_denied)) {
         if (entry.is_regular_file()) {
@@ -162,6 +166,9 @@ TargetInfo inspect_target(const fs::path& target_path) {
             if (ext == ".rs" || filename == "Cargo.toml") has_rust = true;
             if (ext == ".js" || ext == ".ts" || filename == "package.json") has_js_ts = true;
             if (ext == ".html" || filename == "server.py" || filename == "app.js") has_http = true;
+            if (filename == "crivo-analysis.json") has_http_observations = true;
+            if (filename.find("sbom") != std::string::npos || filename == "bom.json") has_cyclonedx = true;
+            if (filename.find("tsan") != std::string::npos) has_tsan = true;
         }
     }
 
@@ -183,6 +190,12 @@ TargetInfo inspect_target(const fs::path& target_path) {
     if (has_rust) info.discovered_capabilities.push_back("capability:rust");
     if (has_js_ts) info.discovered_capabilities.push_back("capability:javascript");
     if (has_http) info.discovered_capabilities.push_back("capability:http_server");
+    if (has_http_observations) {
+        info.discovered_capabilities.push_back("capability:http_server");
+        info.discovered_capabilities.push_back("capability:http_endpoint");
+    }
+    if (has_cyclonedx) info.discovered_capabilities.push_back("capability:cyclonedx");
+    if (has_tsan) info.discovered_capabilities.push_back("capability:posix_threads");
 
     // Check git revision if available
     fs::path git_dir = info.root_path / ".git";
@@ -347,33 +360,17 @@ CheckSummary execute_check(const CheckOptions& opts) {
         bool test_passed = false;
         std::string failure_msg;
 
-        if (test_case.spec_id == "crivo.catalog.schema-strict" || test_case.spec_id.find("schema-strict") != std::string::npos) {
-            // Este oraculo aplica contratos CRIVO somente a documentos que os
-            // declaram. JSON generico recebe apenas parsing sintatico.
+        if (test_case.adapter == "builtin") {
             oracle_executed = true;
-            registry::RegistryCollection target_collection;
-            registry::ValidationReport target_report;
-            for (const auto& entry : fs::recursive_directory_iterator(target.root_path, fs::directory_options::skip_permission_denied)) {
-                if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                    if (entry.path().filename() == "tests.json") continue;
-                    try {
-                        std::ifstream input(entry.path());
-                        std::string bytes((std::istreambuf_iterator<char>(input)), {});
-                        auto document = boost::json::parse(bytes);
-                        if (document.is_object() && document.as_object().contains("schema_version")) {
-                            registry::validate_file(entry.path().string(), target_collection, target_report);
-                        }
-                    } catch (const std::exception& e) {
-                        target_report.valid = false;
-                        failure_msg = "Invalid JSON syntax in " + entry.path().string() + ": " + e.what();
-                    }
-                }
-            }
-            if (!target_report.valid) {
-                test_passed = false;
-                if (failure_msg.empty()) failure_msg = "Declared CRIVO schema validation failed (" + std::to_string(target_report.errors.size()) + " errors)";
-            } else {
-                test_passed = true;
+            const auto result = oracles::run(test_case.spec_id, target.root_path, sbx_workspace);
+            failure_msg = result.message;
+            test_passed = result.status == oracles::Status::Pass;
+            if (result.status == oracles::Status::Blocked || result.status == oracles::Status::NotApplicable) {
+                summary.blocked_tests++;
+                junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
+                junit_xml << "      <error message=\"" << oracles::to_string(result.status) << ": " << result.message << "\"/>\n";
+                junit_xml << "    </testcase>\n";
+                continue;
             }
         }
 

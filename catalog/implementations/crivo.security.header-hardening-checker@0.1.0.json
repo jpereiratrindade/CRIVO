@@ -13,7 +13,7 @@
     "isolation": "ephemeral",
     "network": "loopback_only"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_security_header_hardening_checker",
   "notes": "Inspeciona cabeçalhos CSP, X-Content-Type-Options e Cache-Control nas respostas HTTP locais."
 }

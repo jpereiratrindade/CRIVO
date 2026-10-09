@@ -14,6 +14,7 @@ add_executable(crivo
   src/core.cpp
   src/sandbox.cpp
   src/inspector.cpp
+  src/builtin_oracles.cpp
   src/memory.cpp
   src/dev_context.cpp
   src/mcp_server.cpp
@@ -270,7 +271,7 @@ file(WRITE ${E11_DIR}/http_app/index.html "<!DOCTYPE html><html><body>Test</body
 file(WRITE ${E11_DIR}/http_app/server.py "import http.server")
 file(WRITE ${E11_DIR}/worktree_a/data.json "{\"id\": \"same_content\"}")
 file(WRITE ${E11_DIR}/worktree_b/data.json "{\"id\": \"same_content\"}")
-file(WRITE ${E11_DIR}/bad_oracle_target/invalid_schema.json "{\"schema_version\": \"bad.version/9.9.9\", \"id\": 12345}")
+file(WRITE ${E11_DIR}/bad_oracle_target/invalid_schema.json "{\"schema_version\": \"crivo.test-spec/9.9.9\", \"id\": 12345}")
 
 # E11-01: Diretório desconhecido com arquivos JSON (descoberta genérica de capacidades)
 add_test(NAME e11_01_unknown_json COMMAND crivo context --target ${E11_DIR}/unknown_json_only --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
@@ -328,3 +329,10 @@ add_test(NAME e11_12_sandbox_unavailable_blocked COMMAND bash -c "out=$(${CMAKE_
 add_test(NAME e11_13_mcp_antigravity_version COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"antigravity\",\"version\":\"test\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
 set_tests_properties(e11_13_mcp_antigravity_version PROPERTIES
   PASS_REGULAR_EXPRESSION "\"protocolVersion\":\"2025-11-25\"")
+
+# E12: matriz completa de oraculos builtin produz 11 provas reais
+set(E12_DIR ${CMAKE_BINARY_DIR}/e12_all_oracles)
+file(REMOVE_RECURSE ${E12_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/tests/fixtures/all_oracles/ DESTINATION ${E12_DIR})
+add_test(NAME e12_01_all_builtin_oracles_pass COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run-all-oracles.sh
+  ${CMAKE_BINARY_DIR}/crivo ${CMAKE_SOURCE_DIR}/catalog ${E12_DIR} ${CMAKE_BINARY_DIR}/all_oracles_evidence)

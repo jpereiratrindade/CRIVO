@@ -1,0 +1,25 @@
+{
+  "schema_version": "crivo.analysis/1.0.0",
+  "http_observations": [
+    {"method":"GET","status":200,"latency_ms":5,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"POST","status":405,"latency_ms":6},
+    {"method":"PUT","status":405,"latency_ms":6},
+    {"method":"DELETE","status":405,"latency_ms":6},
+    {"method":"GET","status":400,"case":"malicious_input","latency_ms":7,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":5,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":6,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":7,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":8,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":5,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":6,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":7,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":8,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":5,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":6,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":7,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":8,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":5,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":6,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}},
+    {"method":"GET","status":200,"latency_ms":7,"headers":{"content-security-policy":"default-src 'none'","x-content-type-options":"nosniff","cache-control":"no-store"}}
+  ]
+}

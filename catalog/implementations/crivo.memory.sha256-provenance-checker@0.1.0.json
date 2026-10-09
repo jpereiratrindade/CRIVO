@@ -13,7 +13,7 @@
     "isolation": "process_isolated",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_memory_sha256_provenance_checker",
   "notes": "Calcula digest FIPS 180-4 de artefatos de evidência e valida integridade com o banco SQLite WAL."
 }

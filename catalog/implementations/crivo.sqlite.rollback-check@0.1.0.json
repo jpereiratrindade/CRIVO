@@ -12,7 +12,7 @@
     "isolation": "ephemeral",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_sqlite_rollback_check",
   "notes": "Executa verificação em banco descartável em memória ou arquivo efêmero."
 }

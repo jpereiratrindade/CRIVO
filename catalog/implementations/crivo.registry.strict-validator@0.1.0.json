@@ -12,7 +12,7 @@
     "isolation": "ephemeral",
     "network": "none"
   },
-  "qualification": "candidate",
+  "qualification": "qualified",
   "entrypoint": "crivo_registry_strict_validator",
   "notes": "Validador C++ estrito de schemas JSON e integridade referencial."
 }

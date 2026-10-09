@@ -89,6 +89,22 @@ liberação local deliberada da porta TCP 8765.
 
 A interface é **somente leitura**, sem endpoint para execução remota, alterações de catálogo ou comandos do sistema. Não publique diretamente o HTTP local na rede; requer autenticação, autorização e gateway próprios antes de qualquer exposição.
 
+### Aplicar matriz internacional completa
+
+```bash
+./build/crivo check \
+  --target /caminho/do/sistema \
+  --profile complete-international-benchmark \
+  --catalog catalog \
+  --evidence-dir .run/evidence
+```
+
+Os 11 oráculos builtin estão qualificados. CRIVO usa artefatos observáveis: bancos
+SQLite (`.db`, `.sqlite`), SARIF, CycloneDX SBOM, relatório TSan, pacotes de
+evidência SHA-256 e `crivo-analysis.json` para observações HTTP. O contrato deste
+último fica em `schemas/analysis/1.0.0.schema.json`. Insumo ausente não gera
+aprovação: resulta em `NOT_APPLICABLE` ou `BLOCKED`.
+
 ## Limites deliberados e estado atual
 
 - **Catálogo Internacional e Validação (E1):** Implementados schemas JSON estritos v1.0.0 (`Reference`, `Technique`, `TestSpec`, `TestImplementation`, `Profile`) com checagem de tipos reais, enumerações e integridade referencial cruzada via `Boost.JSON`.

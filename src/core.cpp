@@ -585,7 +585,9 @@ void serve(const std::string& db,const std::string& web_directory,
       parser.body_limit(1024*1024);
       http::read(stream,buffer,parser);
       const auto req=parser.get();
-      const auto path=std::string(req.target());
+      const auto target=std::string(req.target());
+      const auto qpos=target.find('?');
+      const auto path=(qpos!=std::string::npos)?target.substr(0,qpos):target;
       http::response<http::string_body> resp{http::status::ok,req.version()};
       resp.set(http::field::server,"CRIVO/0.1.0");
       resp.set("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");

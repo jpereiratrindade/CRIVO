@@ -83,3 +83,8 @@ Capacidades descritas nesses documentos como candidatas ou planejadas não são
 consideradas implementadas sem código, testes e evidência correspondentes.
 
 > Sempre pronto. Sempre incompleto.
+
+## Licença
+
+CRIVO é distribuído sob a GNU General Public License versão 3 somente
+(`GPL-3.0-only`). Consulte [`LICENSE`](LICENSE).

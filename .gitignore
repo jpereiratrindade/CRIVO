@@ -1,4 +1,5 @@
 build/
+build-toolbox/
 .run/
 *.db
 *.db-shm

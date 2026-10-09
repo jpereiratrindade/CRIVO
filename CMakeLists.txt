@@ -353,3 +353,17 @@ add_test(NAME e12_03_active_executors_without_preexisting_artifacts COMMAND bash
   ${CMAKE_SOURCE_DIR} ${E12_ACTIVE_CLEAN_DIR} ${CMAKE_BINARY_DIR}/crivo)
 set_tests_properties(e12_03_active_executors_without_preexisting_artifacts PROPERTIES DEPENDS e12_02_automatic_project_qualification)
 
+# E12-04: promocoes de qualificacoes PASS sao ingeridas na memoria federada
+add_test(NAME e12_04_memory_promote COMMAND bash -c "\
+  summary=$(find '${CMAKE_SOURCE_DIR}/.run/qualification/e12_active_clean' -name qualification-summary.json -type f | sort | tail -1); \
+  test -n \"$summary\" && \
+  ${CMAKE_BINARY_DIR}/crivo memory promote --file \"$summary\" --db ${CMAKE_BINARY_DIR}/promoted_memory.db && \
+  ${CMAKE_BINARY_DIR}/crivo memory query --db ${CMAKE_BINARY_DIR}/promoted_memory.db --query 'sovereign_verdict' | grep -q 'exp-e12_active_clean'")
+set_tests_properties(e12_04_memory_promote PROPERTIES DEPENDS e12_03_active_executors_without_preexisting_artifacts)
+
+# E12-05: consumidor MCP executa qualify_project diretamente via RPC
+add_test(NAME e12_05_mcp_qualify_project COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"qualify_project\",\"arguments\":{\"target_path\":\"e12_all_oracles\",\"profile\":\"complete-international-benchmark\",\"promote_on_pass\":true}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db --catalog '${CMAKE_SOURCE_DIR}/catalog' --workspace-root '${CMAKE_BINARY_DIR}'")
+set_tests_properties(e12_05_mcp_qualify_project PROPERTIES
+  PASS_REGULAR_EXPRESSION "complete-international-benchmark")
+
+

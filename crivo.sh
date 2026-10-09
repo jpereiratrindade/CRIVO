@@ -64,6 +64,7 @@ Uso: ./crivo.sh [comando]
   context     Gera projeção de contexto de desenvolvimento crivo.dev-context/1.1.0
   mcp         Inicia servidor MCP stdio somente leitura para IDE e assistentes
   memory-record <arquivo> Registra experiência técnica na memória federada (ADR-0010)
+  memory-promote <summary.json> Promove resultado de qualificação PASS à memória federada
   memory-query [termo]   Consulta experiências transversais e evidências (ADR-0010)
   init        Inicializa banco local legado
   run         Executa perfil core
@@ -131,10 +132,20 @@ case "$COMMAND" in
     ensure_binary
     "$BUILD_DIR/crivo" memory record --file "${2:-}" --db "$DB_FILE"
     ;;
+  memory-promote)
+    ensure_binary
+    "$BUILD_DIR/crivo" memory promote --file "${2:-}" --db "$DB_FILE"
+    ;;
   memory-query)
     ensure_binary
     shift || true
-    "$BUILD_DIR/crivo" memory query --db "$DB_FILE" "$@"
+    if [[ -n "${1:-}" && "$1" != --* ]]; then
+      term=$1
+      shift || true
+      exec "$BUILD_DIR/crivo" memory query --db "$DB_FILE" --query "$term" "$@"
+    else
+      exec "$BUILD_DIR/crivo" memory query --db "$DB_FILE" "$@"
+    fi
     ;;
   validate)
     ensure_binary

@@ -78,10 +78,10 @@ int main(int argc, char** argv) {
         throw std::runtime_error("Acao de adaptador desconhecida: " + adapter_action);
       }
     } else if (command == "memory") {
-      if (argc < 3) throw std::runtime_error("Uso: crivo memory <record|query> [opcoes]");
+      if (argc < 3) throw std::runtime_error("Uso: crivo memory <record|query|promote> [opcoes]");
       memory_action = argv[2];
       option_start = 3;
-      if (memory_action != "record" && memory_action != "query") {
+      if (memory_action != "record" && memory_action != "query" && memory_action != "promote") {
         throw std::runtime_error("Acao de memory desconhecida: " + memory_action);
       }
     }
@@ -409,6 +409,15 @@ int main(int argc, char** argv) {
           return 2;
         }
         std::cout << "CRIVO MEMORY RECORD PASS: Experiencia registrada com sucesso em " << db << "\n";
+        return 0;
+      }
+      if (memory_action == "promote") {
+        std::string sum_file = target_file.empty() ? file : target_file;
+        if (!crivo::memory::promote_qualification_to_experience(db, sum_file)) {
+          std::cerr << "CRIVO MEMORY PROMOTE FAILED: Veredito nao e PASS ou resumo de qualificacao invalido\n";
+          return 2;
+        }
+        std::cout << "CRIVO MEMORY PROMOTE PASS: Experiencia factual promovida com sucesso para a memoria federada em " << db << "\n";
         return 0;
       }
       if (memory_action == "query") {

@@ -123,6 +123,24 @@ static boost::json::array get_tools_list() {
         tools.push_back(make_tool_def("test_matrix", "Resolve matriz de testes aplicavel ao alvo sem executar ou mutar.", props));
     }
 
+    // 6. qualify_project
+    {
+        boost::json::object props;
+        props["target_path"] = boost::json::object{{"type", "string"}, {"description", "Caminho do diretorio do alvo para qualificacao soberana."}};
+        props["profile"] = boost::json::object{{"type", "string"}, {"default", "complete-international-benchmark"}, {"description", "Perfil internacional de verificacao."}};
+        props["promote_on_pass"] = boost::json::object{{"type", "boolean"}, {"default", false}, {"description", "Se true e status for PASS, promove a experiencia automaticamente para a memoria federada."}};
+        tools.push_back(make_tool_def("qualify_project", "Executa a qualificacao completa e soberana do projeto alvo via oraculos ativos CRIVO.", props));
+    }
+
+    // 7. memory_promote
+    {
+        boost::json::object props;
+        props["summary_path"] = boost::json::object{{"type", "string"}, {"description", "Caminho do arquivo qualification-summary.json a ser promovido."}};
+        boost::json::array req;
+        req.push_back(boost::json::value(boost::json::string_view("summary_path")));
+        tools.push_back(make_tool_def("memory_promote", "Promove o resultado fatico de uma qualificacao aprovada (PASS) a memoria federada do CRIVO.", props, req));
+    }
+
     return tools;
 }
 
@@ -267,6 +285,70 @@ static boost::json::object handle_tool_call(
                 text_out = boost::json::serialize(root);
             } else {
                 text_out = "[]";
+            }
+        } else if (tool_name == "qualify_project") {
+            std::string target = safe_string_arg(args, "target_path", ".");
+            std::string profile = safe_string_arg(args, "profile", "complete-international-benchmark");
+            bool promote = false;
+            if (args.contains("promote_on_pass") && args.at("promote_on_pass").is_bool()) {
+                promote = args.at("promote_on_pass").as_bool();
+            }
+
+            fs::path resolved;
+            if (!is_path_safe_and_authorized(target, authorized_root, resolved)) {
+                text_out = "{\"error\": \"ACCESS_DENIED_OUT_OF_SCOPE\", \"message\": \"Caminho fora do escopo autorizado\"}";
+            } else {
+                check::CheckOptions opts;
+                opts.target_path = resolved;
+                opts.profile = profile;
+                opts.catalog_dir = catalog_dir.string();
+                fs::path ev_dir = fs::path(db_path).parent_path() / "qualification" / resolved.filename().string() / "mcp-evidence";
+                fs::create_directories(ev_dir);
+                opts.evidence_dir = ev_dir.string();
+                opts.db_path = db_path;
+                opts.json_output = true;
+                opts.timeout_seconds = 30;
+
+                auto summary = check::execute_check(opts);
+                boost::json::object out_obj;
+                out_obj["schema_version"] = "crivo.qualification-summary/1.0.0";
+                out_obj["project_id"] = summary.project_id;
+                out_obj["target_path"] = resolved.string();
+                out_obj["profile"] = profile;
+                out_obj["status"] = summary.overall_status;
+                out_obj["total"] = summary.total_tests;
+                out_obj["passed"] = summary.passed_tests;
+                out_obj["failed"] = summary.failed_tests;
+                out_obj["skipped"] = summary.skipped_tests;
+                out_obj["blocked"] = summary.blocked_tests;
+                out_obj["evidence_path"] = summary.evidence_path;
+                out_obj["evidence_sha256"] = summary.evidence_sha256;
+
+                if (summary.overall_status == "PASS") {
+                    out_obj["learning_status"] = promote ? "PROMOTED" : "REVIEW_REQUIRED";
+                    out_obj["next_action"] = promote ? "experiencia integrada a memoria federada com sucesso" : "revisar evidencias antes de promover aprendizado";
+                    if (promote && !summary.evidence_path.empty()) {
+                        memory::promote_qualification_to_experience(db_path, summary.evidence_path);
+                    }
+                } else {
+                    out_obj["learning_status"] = "INSUFFICIENT_EVIDENCE";
+                    out_obj["next_action"] = "corrigir falhas e repetir a qualificacao";
+                }
+
+                text_out = boost::json::serialize(out_obj);
+            }
+        } else if (tool_name == "memory_promote") {
+            std::string sum_path = safe_string_arg(args, "summary_path", "");
+            fs::path resolved;
+            if (!is_path_safe_and_authorized(sum_path, authorized_root, resolved) && !fs::exists(sum_path)) {
+                text_out = "{\"error\": \"INVALID_PATH\", \"message\": \"Caminho do resumo invalido\"}";
+            } else {
+                std::string target_file = fs::exists(resolved) ? resolved.string() : sum_path;
+                if (memory::promote_qualification_to_experience(db_path, target_file)) {
+                    text_out = "{\"status\": \"PROMOTED\", \"message\": \"Experiencia factual promovida com sucesso para a memoria federada\"}";
+                } else {
+                    text_out = "{\"error\": \"PROMOTION_REJECTED\", \"message\": \"Veredito nao e PASS ou resumo invalido\"}";
+                }
             }
         } else {
             text_out = "{\"error\": \"UNKNOWN_TOOL\", \"name\": \"" + tool_name + "\"}";

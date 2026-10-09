@@ -27,6 +27,7 @@ struct ExperienceRecord {
 void initialize_memory_schema(const std::string& db_path);
 bool record_experience(const std::string& db_path, const ExperienceRecord& record);
 bool load_and_record_experience_file(const std::string& db_path, const std::string& filepath);
+bool promote_qualification_to_experience(const std::string& db_path, const std::string& summary_path);
 std::vector<ExperienceRecord> query_experiences(
     const std::string& db_path,
     const std::string& search_term = "",

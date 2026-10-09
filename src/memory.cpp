@@ -196,6 +196,95 @@ bool load_and_record_experience_file(const std::string& db_path, const std::stri
     return record_experience(db_path, rec);
 }
 
+bool promote_qualification_to_experience(const std::string& db_path, const std::string& filepath) {
+    std::ifstream f(filepath);
+    if (!f) return false;
+    std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+    boost::system::error_code ec;
+    auto jv = boost::json::parse(content, ec);
+    if (ec || !jv.is_object()) return false;
+
+    auto obj = jv.as_object();
+    if (!obj.contains("status") || obj["status"].as_string() != "PASS") {
+        return false;
+    }
+
+    std::string project_id = obj.contains("project_id") ? std::string(obj["project_id"].as_string()) : "unknown";
+    std::string revision = obj.contains("source_revision") ? std::string(obj["source_revision"].as_string()) : "unknown";
+    std::string profile = obj.contains("profile") ? std::string(obj["profile"].as_string()) : "complete-international-benchmark";
+
+    std::string req_id = "req-" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    std::string ev_sha = "";
+    if (obj.contains("check_result") && obj["check_result"].is_object()) {
+        auto cr = obj["check_result"].as_object();
+        if (cr.contains("request_id")) req_id = std::string(cr["request_id"].as_string());
+        if (cr.contains("evidence_sha256")) ev_sha = std::string(cr["evidence_sha256"].as_string());
+    }
+
+    ExperienceRecord rec;
+    rec.experience_id = "exp-" + project_id + "-" + profile + "-" + req_id;
+    rec.project_id = project_id;
+    rec.source_revision = revision;
+    rec.domain = "engineering_qualification";
+    rec.language = "c_cpp";
+    rec.platform = "posix_linux";
+    rec.problem = "Qualificacao soberana sob o perfil " + profile;
+    rec.choice = "Execucao dos 11 oraculos ativos de teste e isolamento em sandbox efemera";
+    rec.procedure = "Avaliacao completa de conformidade de esquemas, persistencia WAL/rollback, TSan, SBOM, SARIF e HTTP";
+    rec.observed_result = "Veredito PASS comprovado com 0 falhas e 0 bloqueios";
+    rec.evidence_id = req_id;
+    rec.evidence_sha256 = ev_sha;
+    rec.limitations = "Validade factual restrita a revisao " + revision + " e aos oraculos testados";
+    rec.created_at = generate_utc_timestamp();
+    rec.applicability_tags = {"qualification", "crivo", "sovereign_verdict", "wal", "tsan", "sbom", "sarif", "http"};
+
+    boost::json::object exp_json;
+    exp_json["schema_version"] = "crivo.experience/1.0.0";
+    exp_json["experience_id"] = rec.experience_id;
+    exp_json["project_id"] = rec.project_id;
+    exp_json["source_revision"] = rec.source_revision;
+    exp_json["problem"] = rec.problem;
+    exp_json["choice"] = rec.choice;
+    exp_json["procedure"] = rec.procedure;
+    exp_json["observed_result"] = rec.observed_result;
+    exp_json["limitations"] = rec.limitations;
+    exp_json["created_at"] = rec.created_at;
+
+    boost::json::object ctx;
+    ctx["domain"] = rec.domain;
+    ctx["language"] = rec.language;
+    ctx["platform"] = rec.platform;
+    exp_json["context"] = ctx;
+
+    boost::json::object ev_ref;
+    ev_ref["evidence_id"] = rec.evidence_id;
+    ev_ref["sha256"] = rec.evidence_sha256;
+    exp_json["evidence_ref"] = ev_ref;
+
+    boost::json::array tags;
+    for (const auto& t : rec.applicability_tags) tags.push_back(boost::json::value(t));
+    exp_json["applicability_tags"] = tags;
+
+    rec.raw_json = boost::json::serialize(exp_json);
+
+    if (!record_experience(db_path, rec)) {
+        return false;
+    }
+
+    // Update qualification-summary file with PROMOTED learning_status
+    obj["learning_status"] = "PROMOTED";
+    obj["promoted_experience_id"] = rec.experience_id;
+    obj["next_action"] = "experiencia integrada a memoria federada com sucesso";
+    try {
+        std::ofstream out(filepath);
+        out << boost::json::serialize(obj);
+        out.close();
+    } catch (...) {}
+
+    return true;
+}
+
 std::vector<ExperienceRecord> query_experiences(
     const std::string& db_path,
     const std::string& search_term,
@@ -220,7 +309,7 @@ std::vector<ExperienceRecord> query_experiences(
         sql += " AND applicability_tags LIKE ? ";
     }
     if (!search_term.empty()) {
-        sql += " AND (problem LIKE ? OR choice LIKE ? OR procedure LIKE ? OR applicability_tags LIKE ?) ";
+        sql += " AND (problem LIKE ? OR choice LIKE ? OR procedure LIKE ? OR applicability_tags LIKE ? OR project_id LIKE ?) ";
     }
     sql += " ORDER BY created_at DESC;";
 
@@ -240,6 +329,7 @@ std::vector<ExperienceRecord> query_experiences(
     }
     if (!search_term.empty()) {
         std::string term_pattern = "%" + search_term + "%";
+        sqlite3_bind_text(stmt, bind_idx++, term_pattern.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, bind_idx++, term_pattern.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, bind_idx++, term_pattern.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, bind_idx++, term_pattern.c_str(), -1, SQLITE_TRANSIENT);

@@ -366,4 +366,22 @@ add_test(NAME e12_05_mcp_qualify_project COMMAND bash -c "echo '{\"jsonrpc\":\"2
 set_tests_properties(e12_05_mcp_qualify_project PROPERTIES
   PASS_REGULAR_EXPRESSION "complete-international-benchmark")
 
+# ============================================================================
+# Gate E13 — Qualificação e Certificação do Sandbox de Segurança (ADR-0009)
+# ============================================================================
+
+# E13-01: Verificação formal e positiva/negativa do sandbox Bubblewrap
+add_test(NAME e13_01_sandbox_security_qualification COMMAND bash ${CMAKE_SOURCE_DIR}/tests/sandbox_security_test.sh
+  ${CMAKE_BINARY_DIR}/crivo ${CMAKE_SOURCE_DIR}/catalog ${CMAKE_BINARY_DIR})
+
+# E13-02: Saída JSON estruturada de qualificação com garantias ativas
+add_test(NAME e13_02_sandbox_qualification_json COMMAND crivo sandbox qualify --backend bubblewrap --json)
+set_tests_properties(e13_02_sandbox_qualification_json PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"status\":\"QUALIFIED\"")
+
+# E13-03: Prova negativa - Backend inexistente rejeitado de forma segura (fail-closed)
+add_test(NAME e13_03_sandbox_missing_backend_fails COMMAND crivo sandbox qualify --backend nonexistent_backend_xyz)
+set_tests_properties(e13_03_sandbox_missing_backend_fails PROPERTIES WILL_FAIL TRUE)
+
+
 

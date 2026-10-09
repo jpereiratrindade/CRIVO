@@ -28,8 +28,8 @@ enum class TerminationReason {
 
 struct SandboxLimits {
     std::chrono::milliseconds timeout{30000};
-    uint64_t max_memory_mb{1024};
-    uint32_t max_processes{64};
+    uint64_t max_memory_mb{2048};
+    uint32_t max_processes{1024};
 };
 
 struct SandboxConfig {
@@ -51,6 +51,21 @@ struct ExecutionResult {
     std::string stderr_output;
     std::string isolation_driver;
     std::string isolation_status; // "ENFORCED", "DEGRADED", "BLOCKED"
+    std::vector<std::string> capabilities_enforced;
+};
+
+struct SandboxQualificationCheck {
+    std::string name;
+    bool passed{false};
+    std::string details;
+};
+
+struct SandboxQualificationResult {
+    bool passed{false};
+    std::string backend;
+    std::string isolation_status;
+    std::vector<SandboxQualificationCheck> checks;
+    std::vector<std::string> capabilities_enforced;
 };
 
 class ISandboxDriver {
@@ -93,5 +108,7 @@ std::string termination_reason_to_string(TerminationReason reason);
 std::string generate_sandbox_report_json(const SandboxConfig& config,
                                         const ExecutionResult& res,
                                         const std::string& instance_id);
+SandboxQualificationResult qualify_backend(BackendType backend, const std::filesystem::path& temp_dir);
+std::string serialize_qualification_result(const SandboxQualificationResult& q);
 
 } // namespace crivo::sandbox

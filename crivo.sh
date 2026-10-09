@@ -74,6 +74,7 @@ Uso: ./crivo.sh [comando]
   pilot-project <manifesto> Executa projeto externo declarado, em modo shadow
   verify-project <manifesto> Executa testes CRIVO-native; alvo nao precisa ter testes
   qualify-project <diretorio> [perfil] Provoca, testa, evidencia e classifica um alvo com oráculos CRIVO
+  sandbox-qualify [backend] Qualifica o sandbox de segurança com provas positivas e negativas (ADR-0009)
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
@@ -174,6 +175,11 @@ case "$COMMAND" in
   qualify-project)
     build
     exec "$SCRIPT_DIR/scripts/project-qualify.sh" "${2:-}" "${3:-complete-international-benchmark}"
+    ;;
+  sandbox-qualify|sandbox)
+    ensure_binary
+    shift || true
+    "$BUILD_DIR/crivo" sandbox qualify "$@"
     ;;
   init)
     ensure_binary

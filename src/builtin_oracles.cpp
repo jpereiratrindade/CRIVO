@@ -505,7 +505,7 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
   boost::json::array obs;
 
   // Mutating method rejections (POST, PUT, DELETE, PATCH -> 405 Method Not Allowed)
-  for (const std::string& method : {"POST", "PUT", "DELETE", "PATCH"}) {
+  for (const char* method : {"POST", "PUT", "DELETE", "PATCH"}) {
     boost::json::object r;
     r["method"] = method;
     r["path"] = "/api/v1/resource";

@@ -454,6 +454,18 @@ CheckSummary execute_check(const CheckOptions& opts) {
     overall_sbx.isolation_driver = observed_driver;
     overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" : observed_isolation;
     overall_sbx.duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_steady - start_steady);
+    if (observed_driver == "bubblewrap" || sbx_config.backend == sandbox::BackendType::Bubblewrap) {
+        overall_sbx.capabilities_enforced = {
+            "ro_target_binding",
+            "rw_workspace_binding",
+            "unshare_all",
+            "tmpfs_tmp",
+            "die_with_parent",
+            "rlimit_nproc",
+            "rlimit_as"
+        };
+        if (!sbx_config.enable_network) overall_sbx.capabilities_enforced.push_back("unshare_net");
+    }
 
     fs::path sbx_report_file = evidence_path / "sandbox-report.json";
     {

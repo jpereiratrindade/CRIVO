@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
     std::string registry_action;
     std::string events_action;
     std::string memory_action;
+    std::string sandbox_action = "qualify";
     std::string adapter_type, adapter_action;
     int option_start = 2;
 
@@ -83,6 +84,14 @@ int main(int argc, char** argv) {
       option_start = 3;
       if (memory_action != "record" && memory_action != "query" && memory_action != "promote") {
         throw std::runtime_error("Acao de memory desconhecida: " + memory_action);
+      }
+    } else if (command == "sandbox") {
+      if (argc >= 3 && argv[2][0] != '-') {
+        sandbox_action = argv[2];
+        option_start = 3;
+      }
+      if (sandbox_action != "qualify" && sandbox_action != "status") {
+        throw std::runtime_error("Acao de sandbox desconhecida: " + sandbox_action);
       }
     }
 
@@ -425,6 +434,29 @@ int main(int argc, char** argv) {
         std::cout << crivo::memory::serialize_experiences_json(exps) << "\n";
         return 0;
       }
+    }
+    if (command == "sandbox") {
+      crivo::sandbox::BackendType btype;
+      if (sandbox_backend == "bubblewrap") btype = crivo::sandbox::BackendType::Bubblewrap;
+      else if (sandbox_backend == "podman") btype = crivo::sandbox::BackendType::Podman;
+      else if (sandbox_backend == "host_isolated") btype = crivo::sandbox::BackendType::HostIsolated;
+      else if (sandbox_backend == "auto" || sandbox_backend.empty()) btype = crivo::sandbox::BackendType::Auto;
+      else {
+        std::cerr << "CRIVO SANDBOX FAILED: Backend de sandbox desconhecido: " << sandbox_backend << "\n";
+        return 2;
+      }
+
+      auto qres = crivo::sandbox::qualify_backend(btype, "");
+      if (json_output) {
+        std::cout << crivo::sandbox::serialize_qualification_result(qres) << "\n";
+      } else {
+        std::cout << "CRIVO SANDBOX " << (qres.passed ? "QUALIFIED" : "DISQUALIFIED") << ": "
+                  << "backend=" << qres.backend << ", isolation=" << qres.isolation_status << "\n";
+        for (const auto& chk : qres.checks) {
+          std::cout << "  - [" << (chk.passed ? "PASS" : "FAIL") << "] " << chk.name << ": " << chk.details << "\n";
+        }
+      }
+      return qres.passed ? 0 : 2;
     }
     if (command == "adapter") {
       if (adapter_type == "ctest") {

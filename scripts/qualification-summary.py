@@ -13,8 +13,7 @@ with open(check_path, encoding="utf-8") as stream:
     check = json.load(stream)
 
 status = check.get("status", "BLOCKED")
-if int(adapter_rc) != 0:
-    status = "FAIL"
+# A suíte do alvo é diagnóstico opcional; nunca governa o veredito CRIVO.
 results = check.get("results", [])
 with open(f"{catalog_path}/profiles/{profile}.json", encoding="utf-8") as stream:
     profile_document = json.load(stream)
@@ -58,6 +57,7 @@ summary = {
     "adapter_exit_code": int(adapter_rc),
     "check_exit_code": int(check_rc),
     "adapter_result": adapter,
+    "target_tests_role": "OPTIONAL_DIAGNOSTIC",
     "check_result": check,
     "test_contracts": contracts,
     "findings": findings,

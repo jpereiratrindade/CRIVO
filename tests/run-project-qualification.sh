@@ -17,7 +17,8 @@ with open(sys.argv[1], encoding="utf-8") as stream:
     value = json.load(stream)
 assert value["status"] == "PASS"
 assert value["learning_status"] == "REVIEW_REQUIRED"
-assert value["adapter_result"]["summary"]["failed"] == 0
+assert value["adapter_result"] is None
+assert value["target_tests_role"] == "OPTIONAL_DIAGNOSTIC"
 assert value["findings"]["failed"] == 0
 assert value["next_action"]
 assert len(value["test_contracts"]) == 11

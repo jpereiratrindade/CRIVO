@@ -32,12 +32,15 @@ mkdir -p "$run_root" "$evidence_dir"
 
 adapter_json=null
 adapter_rc=0
-if [[ -f "$target/CMakeLists.txt" ]]; then
+# Testes pertencentes ao alvo não participam da qualificação por padrão. Eles
+# podem ser coletados como diagnóstico complementar, sem substituir os oráculos
+# mantidos e provocados pelo CRIVO.
+if [[ ${CRIVO_INCLUDE_TARGET_TESTS:-0} == 1 && -f "$target/CMakeLists.txt" ]]; then
   cmake -S "$target" -B "$build_dir" -DCMAKE_BUILD_TYPE=Debug >"$run_root/configure.log" 2>&1 || adapter_rc=$?
   if [[ $adapter_rc -eq 0 ]]; then cmake --build "$build_dir" -j"${CRIVO_JOBS:-2}" >"$run_root/build.log" 2>&1 || adapter_rc=$?; fi
   if [[ $adapter_rc -eq 0 ]]; then
     adapter_json=$($crivo_bin adapter ctest run --build "$build_dir" --workspace-root "$crivo_root/.run/qualification/builds" \
-      --evidence-dir "$evidence_dir/ctest" --project "$project_id" --record-db "$db" \
+      --evidence-dir "$evidence_dir/target-tests" --project "$project_id" --record-db "$db" \
       --source-revision "$revision" --source-worktree "$worktree" 2>"$run_root/adapter.err") || adapter_rc=$?
   fi
 fi

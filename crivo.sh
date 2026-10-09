@@ -72,13 +72,13 @@ Uso: ./crivo.sh [comando]
   events      Lista trilha de auditoria e eventos de ciclo de vida
   pilot-project <manifesto> Executa projeto externo declarado, em modo shadow
   verify-project <manifesto> Executa testes CRIVO-native; alvo nao precisa ter testes
-  qualify-project <diretorio> [perfil] Descobre, compila, testa, evidencia e classifica um alvo
+  qualify-project <diretorio> [perfil] Provoca, testa, evidencia e classifica um alvo com oráculos CRIVO
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
 
 Variáveis: CRIVO_TOOLBOX, CRIVO_BUILD_DIR, CRIVO_DB, CRIVO_PORT, CRIVO_JOBS,
-           CRIVO_PROJECT_BUILD, CRIVO_PROJECT_EVIDENCE.
+           CRIVO_PROJECT_BUILD, CRIVO_PROJECT_EVIDENCE, CRIVO_INCLUDE_TARGET_TESTS.
 EOF
 }
 

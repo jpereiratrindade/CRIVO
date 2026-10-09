@@ -4,7 +4,7 @@
   "title": "CRIVO automated project qualification summary",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "target_path", "source_revision", "source_worktree", "profile", "status", "adapter_exit_code", "check_exit_code", "adapter_result", "check_result", "test_contracts", "findings", "learning_status", "next_action"],
+  "required": ["schema_version", "project_id", "target_path", "source_revision", "source_worktree", "profile", "status", "adapter_exit_code", "check_exit_code", "adapter_result", "target_tests_role", "check_result", "test_contracts", "findings", "learning_status", "next_action"],
   "properties": {
     "schema_version": {"const": "crivo.qualification-summary/1.0.0"},
     "project_id": {"type": "string", "minLength": 1},
@@ -16,6 +16,7 @@
     "adapter_exit_code": {"type": "integer", "minimum": 0},
     "check_exit_code": {"type": "integer", "minimum": 0},
     "adapter_result": {"type": ["object", "null"]},
+    "target_tests_role": {"const": "OPTIONAL_DIAGNOSTIC"},
     "check_result": {"type": "object"},
     "test_contracts": {
       "type": "array",

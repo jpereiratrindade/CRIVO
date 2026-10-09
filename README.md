@@ -102,14 +102,18 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
   --evidence-dir .run/evidence
 ```
 
-`qualify-project` é a porta automática: identifica revisão e estado do Git,
-configura e compila projetos CMake, executa CTest pelo adaptador, aplica o perfil
+`qualify-project` é a porta automática: identifica revisão e estado do Git e aplica o perfil
 internacional e grava `qualification-summary.json` com decisão, falhas, bloqueios,
 inaplicabilidades, evidências e próxima ação. Cada `test_contract` explicita o
 estímulo aplicado e o comportamento esperado (oráculo) antes da comparação. O sistema analisado não precisa
 conhecer o CRIVO. Memória nunca é promovida silenciosamente: um resultado aprovado
 fica como `REVIEW_REQUIRED`; falha ou ausência de prova fica como
 `INSUFFICIENT_EVIDENCE`.
+
+A suíte de testes do sistema analisado não governa a qualificação. Os oráculos e
+estímulos são do CRIVO. CTest do alvo só é coletado, opcionalmente, com
+`CRIVO_INCLUDE_TARGET_TESTS=1`, como diagnóstico complementar e sem alterar o
+veredito CRIVO.
 
 Os 11 oráculos builtin estão qualificados. CRIVO usa artefatos observáveis: bancos
 SQLite (`.db`, `.sqlite`), SARIF, CycloneDX SBOM, relatório TSan, pacotes de

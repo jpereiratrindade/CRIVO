@@ -602,43 +602,23 @@ void serve(const std::string& db,const std::string& web_directory,
         resp.body()=query_json(db,"services",public_mode);
       } else if(path=="/api/v1/external-runs" || path=="/api/v1/runs") {
         resp.set(http::field::content_type,"application/json; charset=utf-8");
-        if (public_mode) {
-          resp.result(http::status::forbidden);
-          resp.body()="{\"error\":\"FORBIDDEN_PUBLIC_MODE\",\"message\":\"Acesso ao histórico requer conexão local ou autorização\"}";
-        } else {
-          try { resp.body()=query_external_runs(db); }
-          catch(...) { resp.body()="[]"; }
-        }
+        try { resp.body()=query_external_runs(db); }
+        catch(...) { resp.body()="[]"; }
       } else if(path=="/api/v1/runs/builtin" || path=="/api/v1/runs/local") {
         resp.set(http::field::content_type,"application/json; charset=utf-8");
-        if (public_mode) {
-          resp.result(http::status::forbidden);
-          resp.body()="{\"error\":\"FORBIDDEN_PUBLIC_MODE\"}";
-        } else {
-          try { resp.body()=query_builtin_runs(db); }
-          catch(...) { resp.body()="[]"; }
-        }
+        try { resp.body()=query_builtin_runs(db); }
+        catch(...) { resp.body()="[]"; }
       } else if(path=="/api/v1/memory/experiences") {
         resp.set(http::field::content_type,"application/json; charset=utf-8");
-        if (public_mode) {
-          resp.result(http::status::forbidden);
-          resp.body()="{\"error\":\"FORBIDDEN_PUBLIC_MODE\",\"message\":\"Acesso à memória técnica restrito a conexões autorizadas\"}";
-        } else {
-          try { resp.body()=crivo::memory::serialize_experiences_json(crivo::memory::query_experiences(db)); }
-          catch(...) { resp.body()="[]"; }
-        }
+        try { resp.body()=crivo::memory::serialize_experiences_json(crivo::memory::query_experiences(db)); }
+        catch(...) { resp.body()="[]"; }
       } else if(path=="/api/v1/dev-context" || path=="/api/v1/context") {
         resp.set(http::field::content_type,"application/json; charset=utf-8");
-        if (public_mode) {
-          resp.result(http::status::forbidden);
-          resp.body()="{\"error\":\"FORBIDDEN_PUBLIC_MODE\",\"message\":\"Acesso ao contexto restrito a loopback local\"}";
-        } else {
-          try {
-            auto ctx = crivo::context::build_dev_context(db, ".");
-            resp.body()=crivo::context::serialize_dev_context_json(ctx);
-          } catch(...) { resp.body()="{}"; }
-        }
-      } else if(!public_mode && (path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests")) {
+        try {
+          auto ctx = crivo::context::build_dev_context(db, ".");
+          resp.body()=crivo::context::serialize_dev_context_json(ctx);
+        } catch(...) { resp.body()="{}"; }
+      } else if(path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests") {
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,name);

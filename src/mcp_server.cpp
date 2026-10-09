@@ -141,6 +141,13 @@ static boost::json::array get_tools_list() {
         tools.push_back(make_tool_def("memory_promote", "Promove o resultado fatico de uma qualificacao aprovada (PASS) a memoria federada do CRIVO.", props, req));
     }
 
+    // 8. sandbox_qualify
+    {
+        boost::json::object props;
+        props["backend"] = boost::json::object{{"type", "string"}, {"default", "bubblewrap"}, {"description", "Backend de isolamento a auditar (bubblewrap, podman, host_isolated, auto)."}};
+        tools.push_back(make_tool_def("sandbox_qualify", "Executa a suite de qualificacao e auditoria de seguranca do sandbox efemero (ADR-0009 / Gate E13).", props));
+    }
+
     return tools;
 }
 
@@ -350,6 +357,15 @@ static boost::json::object handle_tool_call(
                     text_out = "{\"error\": \"PROMOTION_REJECTED\", \"message\": \"Veredito nao e PASS ou resumo invalido\"}";
                 }
             }
+        } else if (tool_name == "sandbox_qualify") {
+            std::string backend_str = safe_string_arg(args, "backend", "bubblewrap");
+            sandbox::BackendType btype = sandbox::BackendType::Bubblewrap;
+            if (backend_str == "podman") btype = sandbox::BackendType::Podman;
+            else if (backend_str == "host_isolated") btype = sandbox::BackendType::HostIsolated;
+            else if (backend_str == "auto") btype = sandbox::BackendType::Auto;
+
+            auto qres = sandbox::qualify_backend(btype, "");
+            text_out = sandbox::serialize_qualification_result(qres);
         } else {
             text_out = "{\"error\": \"UNKNOWN_TOOL\", \"name\": \"" + tool_name + "\"}";
         }

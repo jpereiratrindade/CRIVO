@@ -383,5 +383,11 @@ set_tests_properties(e13_02_sandbox_qualification_json PROPERTIES
 add_test(NAME e13_03_sandbox_missing_backend_fails COMMAND crivo sandbox qualify --backend nonexistent_backend_xyz)
 set_tests_properties(e13_03_sandbox_missing_backend_fails PROPERTIES WILL_FAIL TRUE)
 
+# E13-04: Consumidor MCP audita sandbox efêmero via RPC
+add_test(NAME e13_04_mcp_sandbox_qualify COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sandbox_qualify\",\"arguments\":{\"backend\":\"bubblewrap\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
+set_tests_properties(e13_04_mcp_sandbox_qualify PROPERTIES
+  PASS_REGULAR_EXPRESSION "crivo.sandbox-qualification")
+
+
 
 

@@ -12,6 +12,8 @@ find_package(Threads REQUIRED)
 add_executable(crivo
   src/main.cpp
   src/core.cpp
+  src/sandbox.cpp
+  src/inspector.cpp
   src/registry/json_impl.cpp
   src/registry/validator.cpp
   src/registry/importer.cpp
@@ -163,3 +165,32 @@ add_test(NAME e7_native_evidence_query COMMAND crivo external-runs
   --db ${CMAKE_BINARY_DIR}/native_external_runs.db)
 set_tests_properties(e7_native_evidence_query PROPERTIES DEPENDS e7_native_evidence_record
   PASS_REGULAR_EXPRESSION "\"adapter\":\"crivo-native\"")
+
+# Testes de Aceite E8 — Verificação sob Demanda e Sandbox Efêmera (CRIVO-DEV-002 / ADR-0008 / ADR-0009)
+add_test(NAME e8_check_on_demand_pass COMMAND crivo check
+  --target ${CMAKE_SOURCE_DIR}/catalog
+  --profile pilot-e1
+  --catalog ${CMAKE_SOURCE_DIR}/catalog
+  --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence
+  --db ${CMAKE_BINARY_DIR}/check_test.db)
+set_tests_properties(e8_check_on_demand_pass PROPERTIES
+  PASS_REGULAR_EXPRESSION "CRIVO CHECK PASS")
+
+add_test(NAME e8_check_json_summary COMMAND crivo check
+  --target ${CMAKE_SOURCE_DIR}/catalog
+  --profile pilot-e1
+  --catalog ${CMAKE_SOURCE_DIR}/catalog
+  --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_json
+  --db ${CMAKE_BINARY_DIR}/check_test.db
+  --json)
+set_tests_properties(e8_check_json_summary PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"schema_version\":\"crivo.check-summary/1.0.0\"")
+
+add_test(NAME e8_check_empty_target_blocked COMMAND crivo check
+  --target ${CMAKE_BINARY_DIR}/nonexistent_target_dir
+  --profile pilot-e1
+  --catalog ${CMAKE_SOURCE_DIR}/catalog
+  --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_fail
+  --fail-closed)
+set_tests_properties(e8_check_empty_target_blocked PROPERTIES WILL_FAIL TRUE)
+

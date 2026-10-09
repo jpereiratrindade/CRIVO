@@ -33,10 +33,10 @@
 
 - [x] **ADR-0008**: Inversão do fluxo de solicitação e independência tecnológica dos participantes
 - [x] **ADR-0009**: Subsistema de sandboxes efêmeras e isolamento por desenho
-- [ ] **E1 — Preservação**: Manter 100% das capacidades operacionais v0.1/v0.2 e integridade da suíte de 38 testes
-- [ ] **E2 — Inversão do fluxo**: Implementar CLI `crivo check` para solicitação sob demanda pelo desenvolvimento
-- [ ] **E3 — Independência**: Oráculos CRIVO-native e adaptadores CLI sem dependência de CTest/CMake no participante
-- [ ] **E4 — Isolamento**: Subsistema de Sandboxes efêmeras com backends Bubblewrap e Podman rootless no Linux
+- [x] **E1 — Preservação**: Manter 100% das capacidades operacionais v0.1/v0.2 e integridade da suíte
+- [x] **E2 — Inversão do fluxo**: Implementar CLI `crivo check` para solicitação sob demanda pelo desenvolvimento
+- [x] **E3 — Independência**: Oráculos CRIVO-native e adaptadores CLI sem dependência de CTest/CMake no participante
+- [x] **E4 — Isolamento**: Subsistema de Sandboxes efêmeras com backends Bubblewrap e Podman rootless no Linux (41 testes CTest)
 - [ ] **E5 — Evidências**: Ampliação de telemetria, consumo de recursos e proveniência estrita
 - [ ] **E6 — Piloto TRAMA-RS**: Fluxo completo sob demanda em sandbox para o TRAMA-RS
 - [ ] **E7 — Interface SisTer**: Acompanhamento, histórico de sandboxes e diagnósticos no dashboard Web

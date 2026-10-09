@@ -57,6 +57,7 @@ Uso: ./crivo.sh [comando]
   validate    Valida integridade estrita de schemas e referências cruzadas
   import      Importa catálogo internacional para persistência SQLite
   plan        Gera e exibe o plano de teste resolvido para o perfil
+  check       Executa verificação sob demanda em sandbox efêmera (CRIVO-DEV-002)
   init        Inicializa banco local legado
   run         Executa perfil core
   runs        Lista execuções registradas
@@ -76,7 +77,7 @@ EOF
 case "$COMMAND" in
   up|all)
     build
-    printf '\n=== [1/5] Executando CTest (38 testes) ===\n'
+    printf '\n=== [1/5] Executando CTest (41 testes) ===\n'
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     printf '\n=== [2/5] Validando Catálogo Estrito ===\n'
     "$BUILD_DIR/crivo" registry validate --dir catalog
@@ -102,6 +103,11 @@ case "$COMMAND" in
   test)
     build
     ctest --test-dir "$BUILD_DIR" --output-on-failure
+    ;;
+  check)
+    ensure_binary
+    shift || true
+    "$BUILD_DIR/crivo" check --db "$DB_FILE" "$@"
     ;;
   validate)
     ensure_binary

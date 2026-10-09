@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Check Request Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.check-request/1.0.0"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^req-[a-zA-Z0-9_-]+$"
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "revision": { "type": "string" },
+        "is_dirty": { "type": "boolean" },
+        "discovered_capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "string"
+    },
+    "isolation": {
+      "type": "string",
+      "enum": ["sandbox", "host_isolated", "none"]
+    },
+    "sandbox_backend": {
+      "type": "string",
+      "enum": ["auto", "bubblewrap", "podman", "host_isolated"]
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "timeout_ms": { "type": "integer", "minimum": 100 },
+        "max_memory_mb": { "type": "integer", "minimum": 16 },
+        "max_processes": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "fail_closed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "target",
+    "profile"
+  ],
+  "additionalProperties": false
+}

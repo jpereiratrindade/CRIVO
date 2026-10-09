@@ -4,6 +4,8 @@
 #include "registry/plan.hpp"
 #include "registry/lifecycle.hpp"
 #include "adapters/ctest_adapter.hpp"
+#include "inspector.hpp"
+#include "sandbox.hpp"
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -27,7 +29,7 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|check|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
@@ -76,6 +78,10 @@ int main(int argc, char** argv) {
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
     std::string catalog_dir = "catalog";
     std::string target_file = "";
+    std::string target_path = ".";
+    std::string isolation_mode = "sandbox";
+    std::string sandbox_backend = "auto";
+    bool json_output = false;
     std::string bind_address = "127.0.0.1";
     std::string supported_caps_str = "";
     std::string unsupported_caps_str = "";
@@ -101,7 +107,10 @@ int main(int argc, char** argv) {
       std::string a = argv[i];
       if (a == "--db" && i + 1 < argc) db = argv[++i];
       else if (a == "--file" && i + 1 < argc) { file = argv[++i]; target_file = file; }
-      else if (a == "--dir" && i + 1 < argc) catalog_dir = argv[++i];
+      else if ((a == "--dir" || a == "--catalog") && i + 1 < argc) catalog_dir = argv[++i];
+      else if (a == "--target" && i + 1 < argc) target_path = argv[++i];
+      else if (a == "--isolation" && i + 1 < argc) isolation_mode = argv[++i];
+      else if (a == "--backend" && i + 1 < argc) sandbox_backend = argv[++i];
       else if (a == "--build" && i + 1 < argc) build_dir = argv[++i];
       else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
       else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
@@ -120,6 +129,7 @@ int main(int argc, char** argv) {
       else if (a == "--dry-run") dry_run = true;
       else if (a == "--closed-world") closed_world = true;
       else if (a == "--fail-closed") fail_closed = true;
+      else if (a == "--json") json_output = true;
       else if (a == "--supported-caps" && i + 1 < argc) supported_caps_str = argv[++i];
       else if (a == "--unsupported-caps" && i + 1 < argc) unsupported_caps_str = argv[++i];
       else if (a == "--entity-type" && i + 1 < argc) entity_type = argv[++i];
@@ -335,6 +345,46 @@ int main(int argc, char** argv) {
         sqlite3_close(db_handle);
         return 0;
       }
+    }
+    if (command == "check") {
+      crivo::check::CheckOptions opts;
+      opts.target_path = target_path.empty() ? "." : target_path;
+      opts.profile = profile;
+      opts.catalog_dir = catalog_dir;
+      opts.db_path = db;
+      opts.evidence_dir = evidence_dir;
+      opts.isolation = isolation_mode;
+      opts.backend = sandbox_backend;
+      opts.fail_closed = fail_closed;
+      opts.dry_run = dry_run;
+      opts.json_output = json_output;
+      opts.timeout_seconds = timeout_seconds == 0 ? 30 : timeout_seconds;
+
+      auto summary = crivo::check::execute_check(opts);
+      if (json_output) {
+        std::cout << "{\"schema_version\":\"crivo.check-summary/1.0.0\",\"request_id\":\""
+                  << summary.request_id << "\",\"project_id\":\"" << summary.project_id
+                  << "\",\"status\":\"" << summary.overall_status
+                  << "\",\"total\":" << summary.total_tests
+                  << ",\"passed\":" << summary.passed_tests
+                  << ",\"failed\":" << summary.failed_tests
+                  << ",\"skipped\":" << summary.skipped_tests
+                  << ",\"blocked\":" << summary.blocked_tests
+                  << ",\"evidence_path\":\"" << summary.evidence_path
+                  << "\",\"evidence_sha256\":\"" << summary.evidence_sha256 << "\"}\n";
+      } else {
+        std::cout << "CRIVO CHECK " << summary.overall_status << ": "
+                  << "total=" << summary.total_tests
+                  << ", passed=" << summary.passed_tests
+                  << ", failed=" << summary.failed_tests
+                  << ", skipped=" << summary.skipped_tests
+                  << ", blocked=" << summary.blocked_tests
+                  << " [evidence: " << summary.evidence_path << "]\n";
+      }
+      if (summary.overall_status == "PASS") {
+        return 0;
+      }
+      return 2;
     }
     if (command == "adapter") {
       if (adapter_type == "ctest") {

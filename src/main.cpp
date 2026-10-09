@@ -87,6 +87,8 @@ int main(int argc, char** argv) {
     std::string build_dir = "build";
     std::string evidence_dir = ".run/evidence";
     std::string project_id = "local-project";
+    std::string workspace_root = "";
+    unsigned int timeout_seconds = 0;
     bool dry_run = false;
     bool closed_world = false;
     bool fail_closed = false;
@@ -100,6 +102,12 @@ int main(int argc, char** argv) {
       else if (a == "--build" && i + 1 < argc) build_dir = argv[++i];
       else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
       else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
+      else if (a == "--workspace-root" && i + 1 < argc) workspace_root = argv[++i];
+      else if (a == "--timeout" && i + 1 < argc) {
+        const auto n = std::stoul(argv[++i]);
+        if (n < 1 || n > 86400) throw std::runtime_error("Timeout invalido (1..86400 segundos)");
+        timeout_seconds = static_cast<unsigned int>(n);
+      }
       else if (a == "--web" && i + 1 < argc) web = argv[++i];
       else if (a == "--profile" && i + 1 < argc) profile = argv[++i];
       else if (a == "--bind" && i + 1 < argc) bind_address = argv[++i];
@@ -316,7 +324,8 @@ int main(int argc, char** argv) {
     if (command == "adapter") {
       if (adapter_type == "ctest") {
         if (adapter_action == "discover") {
-          auto disc = crivo::adapters::discover_ctest(build_dir, project_id);
+          auto disc = crivo::adapters::discover_ctest(
+              build_dir, project_id, workspace_root, timeout_seconds == 0 ? 30 : timeout_seconds);
           if (!disc.success) {
             std::cerr << "CRIVO ADAPTER CTEST DISCOVER FAILED: " << disc.error_message << "\n";
             return 2;
@@ -325,7 +334,8 @@ int main(int argc, char** argv) {
           return 0;
         }
         if (adapter_action == "run") {
-          auto res = crivo::adapters::run_ctest(build_dir, evidence_dir, project_id);
+          auto res = crivo::adapters::run_ctest(
+              build_dir, evidence_dir, project_id, workspace_root, timeout_seconds == 0 ? 300 : timeout_seconds);
           if (!res.success) {
             std::cerr << "CRIVO ADAPTER CTEST RUN FAILED: " << res.error_message << "\n";
             return 2;

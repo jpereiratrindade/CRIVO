@@ -49,11 +49,15 @@ struct CTestExecutionResult {
 };
 
 CTestDiscoveryResult discover_ctest(const std::string& build_dir,
-                                    const std::string& project_id = "local-project");
+                                    const std::string& project_id = "local-project",
+                                    const std::string& workspace_root = "",
+                                    unsigned int timeout_seconds = 30);
 
 CTestExecutionResult run_ctest(const std::string& build_dir,
                                const std::string& evidence_dir,
-                               const std::string& project_id = "local-project");
+                               const std::string& project_id = "local-project",
+                               const std::string& workspace_root = "",
+                               unsigned int timeout_seconds = 300);
 
 std::string serialize_discovery_json(const CTestDiscoveryResult& disc);
 

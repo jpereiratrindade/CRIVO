@@ -7,7 +7,15 @@
 #include <filesystem>
 #include <fstream>
 #include <array>
+#include <algorithm>
+#include <cctype>
 #include <iostream>
+#include <cerrno>
+#include <csignal>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <thread>
+#include <unistd.h>
 
 namespace crivo::adapters {
 
@@ -24,20 +32,116 @@ std::string current_utc_iso8601() {
   return ss.str();
 }
 
-std::string exec_command(const std::string& cmd, int& out_exit_code) {
-  std::array<char, 4096> buffer;
-  std::string result;
-  FILE* pipe = popen(cmd.c_str(), "r");
-  if (!pipe) {
-    out_exit_code = -1;
-    return "";
+struct ProcessResult {
+  int exit_code{-1};
+  bool timed_out{false};
+  std::string stdout_text;
+  std::string stderr_text;
+};
+
+void drain_fd(int fd, std::string& target) {
+  std::array<char, 4096> buffer{};
+  while (true) {
+    const ssize_t n = read(fd, buffer.data(), buffer.size());
+    if (n > 0) target.append(buffer.data(), static_cast<size_t>(n));
+    else if (n == 0 || (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)) break;
+    else if (errno == EAGAIN || errno == EWOULDBLOCK) break;
   }
-  while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-    result += buffer.data();
+}
+
+ProcessResult exec_process(const std::vector<std::string>& args, unsigned int timeout_seconds) {
+  ProcessResult result;
+  if (args.empty()) return result;
+
+  int stdout_pipe[2];
+  int stderr_pipe[2];
+  if (pipe(stdout_pipe) != 0 || pipe(stderr_pipe) != 0) {
+    result.stderr_text = "Falha ao criar pipes do processo";
+    return result;
   }
-  int status = pclose(pipe);
-  out_exit_code = WEXITSTATUS(status);
+
+  const pid_t pid = fork();
+  if (pid == 0) {
+    setpgid(0, 0);
+    dup2(stdout_pipe[1], STDOUT_FILENO);
+    dup2(stderr_pipe[1], STDERR_FILENO);
+    close(stdout_pipe[0]); close(stdout_pipe[1]);
+    close(stderr_pipe[0]); close(stderr_pipe[1]);
+    std::vector<char*> argv;
+    argv.reserve(args.size() + 1);
+    for (const auto& arg : args) argv.push_back(const_cast<char*>(arg.c_str()));
+    argv.push_back(nullptr);
+    execvp(argv[0], argv.data());
+    _exit(127);
+  }
+
+  close(stdout_pipe[1]);
+  close(stderr_pipe[1]);
+  if (pid < 0) {
+    close(stdout_pipe[0]); close(stderr_pipe[0]);
+    result.stderr_text = "Falha ao criar processo";
+    return result;
+  }
+  setpgid(pid, pid);
+  fcntl(stdout_pipe[0], F_SETFL, fcntl(stdout_pipe[0], F_GETFL) | O_NONBLOCK);
+  fcntl(stderr_pipe[0], F_SETFL, fcntl(stderr_pipe[0], F_GETFL) | O_NONBLOCK);
+
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout_seconds);
+  int status = 0;
+  while (waitpid(pid, &status, WNOHANG) == 0) {
+    drain_fd(stdout_pipe[0], result.stdout_text);
+    drain_fd(stderr_pipe[0], result.stderr_text);
+    if (std::chrono::steady_clock::now() >= deadline) {
+      kill(-pid, SIGKILL);
+      waitpid(pid, &status, 0);
+      result.timed_out = true;
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  drain_fd(stdout_pipe[0], result.stdout_text);
+  drain_fd(stderr_pipe[0], result.stderr_text);
+  close(stdout_pipe[0]); close(stderr_pipe[0]);
+  if (result.timed_out) result.exit_code = 124;
+  else if (WIFEXITED(status)) result.exit_code = WEXITSTATUS(status);
+  else if (WIFSIGNALED(status)) result.exit_code = 128 + WTERMSIG(status);
   return result;
+}
+
+bool valid_project_id(const std::string& id) {
+  if (id.empty() || id.size() > 128) return false;
+  return std::all_of(id.begin(), id.end(), [](unsigned char c) {
+    return std::isalnum(c) || c == '.' || c == '_' || c == '-';
+  });
+}
+
+bool path_within(const fs::path& child, const fs::path& root) {
+  auto child_it = child.begin();
+  for (auto root_it = root.begin(); root_it != root.end(); ++root_it, ++child_it) {
+    if (child_it == child.end() || *child_it != *root_it) return false;
+  }
+  return true;
+}
+
+bool authorize_build_dir(const std::string& build_dir, const std::string& workspace_root,
+                         std::string& canonical_build_dir, std::string& error) {
+  std::error_code ec;
+  const fs::path build = fs::canonical(build_dir, ec);
+  if (ec || !fs::is_directory(build)) {
+    error = "Diretorio de build nao encontrado: " + build_dir;
+    return false;
+  }
+  const fs::path root = workspace_root.empty() ? build : fs::canonical(workspace_root, ec);
+  if (ec || !fs::is_directory(root)) {
+    error = "Raiz de workspace nao encontrada: " + workspace_root;
+    return false;
+  }
+  if (!path_within(build, root)) {
+    error = "Diretorio de build fora da raiz autorizada: " + build.string();
+    return false;
+  }
+  canonical_build_dir = build.string();
+  return true;
 }
 
 std::string get_file_content(const std::string& path) {
@@ -51,25 +155,25 @@ std::string get_file_content(const std::string& path) {
 } // namespace
 
 CTestDiscoveryResult discover_ctest(const std::string& build_dir,
-                                    const std::string& project_id) {
+                                    const std::string& project_id,
+                                    const std::string& workspace_root,
+                                    unsigned int timeout_seconds) {
   CTestDiscoveryResult res;
   res.project_id = project_id;
   res.build_dir = build_dir;
   res.discovered_at = current_utc_iso8601();
 
-  fs::path bpath(build_dir);
-  if (!fs::exists(bpath) || !fs::is_directory(bpath)) {
+  if (!valid_project_id(project_id)) {
     res.success = false;
-    res.error_message = "Diretorio de build nao encontrado: " + build_dir;
+    res.error_message = "project_id invalido; use somente letras, numeros, ponto, hifen e sublinhado";
     return res;
   }
-
-  std::string canonical_build_dir = fs::canonical(bpath).string();
+  std::string canonical_build_dir;
+  if (!authorize_build_dir(build_dir, workspace_root, canonical_build_dir, res.error_message)) return res;
   res.build_dir = canonical_build_dir;
 
-  int exit_code = 0;
-  std::string ctest_ver_out = exec_command("ctest --version", exit_code);
-  std::stringstream ss(ctest_ver_out);
+  const auto version_process = exec_process({"ctest", "--version"}, timeout_seconds);
+  std::stringstream ss(version_process.stdout_text);
   std::string line;
   if (std::getline(ss, line)) {
     res.ctest_version = line;
@@ -77,12 +181,14 @@ CTestDiscoveryResult discover_ctest(const std::string& build_dir,
     res.ctest_version = "ctest unknown";
   }
 
-  std::string cmd = "ctest --test-dir \"" + canonical_build_dir + "\" --show-only=json-v1";
-  std::string output = exec_command(cmd, exit_code);
+  const auto process = exec_process(
+      {"ctest", "--test-dir", canonical_build_dir, "--show-only=json-v1"}, timeout_seconds);
+  const std::string& output = process.stdout_text;
 
-  if (exit_code != 0 || output.empty()) {
+  if (process.exit_code != 0 || output.empty()) {
     res.success = false;
-    res.error_message = "Falha ao executar ctest --show-only=json-v1 (codigo " + std::to_string(exit_code) + ")";
+    res.error_message = process.timed_out ? "Timeout na descoberta CTest" :
+        "Falha ao executar ctest --show-only=json-v1 (codigo " + std::to_string(process.exit_code) + "): " + process.stderr_text;
     return res;
   }
 
@@ -176,41 +282,53 @@ std::string serialize_discovery_json(const CTestDiscoveryResult& disc) {
 
 CTestExecutionResult run_ctest(const std::string& build_dir,
                                const std::string& evidence_dir,
-                               const std::string& project_id) {
+                               const std::string& project_id,
+                               const std::string& workspace_root,
+                               unsigned int timeout_seconds) {
   CTestExecutionResult res;
   res.project_id = project_id;
   res.start_utc = current_utc_iso8601();
 
-  fs::path bpath(build_dir);
-  if (!fs::exists(bpath) || !fs::is_directory(bpath)) {
+  if (!valid_project_id(project_id)) {
     res.success = false;
-    res.error_message = "Diretorio de build nao encontrado: " + build_dir;
+    res.error_message = "project_id invalido; use somente letras, numeros, ponto, hifen e sublinhado";
     return res;
   }
+  std::string canonical_build_dir;
+  if (!authorize_build_dir(build_dir, workspace_root, canonical_build_dir, res.error_message)) return res;
 
   fs::path evpath(evidence_dir);
   fs::create_directories(evpath);
 
-  std::string canonical_build_dir = fs::canonical(bpath).string();
   std::string canonical_ev_dir = fs::canonical(evpath).string();
   fs::path junit_file = fs::path(canonical_ev_dir) / "junit.xml";
+  std::error_code remove_ec;
+  fs::remove(junit_file, remove_ec);
 
-  int exit_code = 0;
-  std::string ctest_ver_out = exec_command("ctest --version", exit_code);
-  std::stringstream ss(ctest_ver_out);
+  const auto version_process = exec_process({"ctest", "--version"}, timeout_seconds);
+  std::stringstream ss(version_process.stdout_text);
   std::string line;
   if (std::getline(ss, line)) res.ctest_version = line;
 
   auto t_start = std::chrono::steady_clock::now();
-  std::string cmd = "ctest --test-dir \"" + canonical_build_dir + "\" --output-junit \"" + junit_file.string() + "\"";
-  exec_command(cmd, exit_code);
+  const auto process = exec_process(
+      {"ctest", "--test-dir", canonical_build_dir, "--output-junit", junit_file.string()}, timeout_seconds);
   auto t_end = std::chrono::steady_clock::now();
 
   res.end_utc = current_utc_iso8601();
   res.duration_seconds = std::chrono::duration<double>(t_end - t_start).count();
 
+  if (process.timed_out) {
+    res.error_message = "Timeout na execucao CTest";
+    return res;
+  }
+
   res.junit_path = junit_file.string();
   std::string junit_content = get_file_content(junit_file.string());
+  if (junit_content.empty()) {
+    res.error_message = "CTest nao produziu JUnit; codigo " + std::to_string(process.exit_code) + ": " + process.stderr_text;
+    return res;
+  }
   res.junit_sha256 = crivo::registry::compute_sha256_hex(junit_content);
 
   // Parse summary from junit.xml if available

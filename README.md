@@ -19,12 +19,13 @@ O script detecta a ausência do Boost no host e usa automaticamente a Toolbox
 `crivo-dev` (ou a indicada por `CRIVO_TOOLBOX`):
 
 ```bash
-# Executa build, 31 testes CTest, validação estrita, importação, run e sobe o servidor web
+# Executa build, 34 testes CTest, validação estrita, importação, run e sobe o servidor web
 ./crivo.sh
 ```
 
 Outros comandos do script:
-- `./crivo.sh test` — Executa toda a suíte CTest (31 testes).
+- `./crivo.sh test` — Executa toda a suíte CTest (34 testes).
+- `./crivo.sh pilot-trama` — Compila TRAMA em build segregado e coleta descoberta/JUnit/evidência em modo shadow.
 - `./crivo.sh validate` — Valida schemas JSON v1.0.0 e integridade referencial.
 - `./crivo.sh plan` — Gera e exibe o plano de teste resolvido.
 - `./crivo.sh events` — Exibe a trilha de auditoria e eventos de ciclo de vida.
@@ -76,7 +77,10 @@ liberação local deliberada da porta TCP 8765.
 ./build/crivo adapter ctest discover --build build/synthetic_fixture --project synthetic-pilot
 ./build/crivo adapter ctest run --build build/synthetic_fixture --evidence-dir .run/evidence --project synthetic-pilot
 
-# 6. Execução clássica v0.1.0 e servidor Web SisTer
+# 6. Piloto TRAMA opt-in: build segregado, workspace autorizado e evidência persistente
+./crivo.sh pilot-trama
+
+# 7. Execução clássica v0.1.0 e servidor Web SisTer
 ./build/crivo run --profile core
 ./build/crivo serve --db .run/crivo.db --web web --bind 127.0.0.1 --port 8765
 ```
@@ -89,7 +93,8 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
 - **Resolução de Planos (E2):** Motor de aplicabilidade tri-estado (`APPLICABLE`, `NOT_APPLICABLE`, `UNKNOWN`) com suporte a política de falha fechada (`--fail-closed`).
 - **Ciclo de Vida e Auditoria (E3):** Trilha append-only de eventos de ciclo de vida com digest SHA-256 canônico e reconciliação de execuções órfãs (`RUN_INTERRUPTED`).
 - **Adaptador CTest (E4):** Descoberta JSON v1 (`kind=ctestInfo`) e execução isolada com emissão de JUnit XML e metadados de evidência auditáveis, validada contra fixture sintética local (`tests/fixtures/ctest`).
-- **Próximos passos:** Integração autorizada e sandbox para o piloto real TRAMA e ELO.
+- **Piloto TRAMA:** Integração opt-in em modo `shadow`, build segregado sob CRIVO, execução sem shell no adaptador, timeout e evidência por execução. Não constitui sandbox de kernel nem gate do TRAMA.
+- **Próximos passos:** Isolamento de kernel/recursos/rede reforçado e segundo piloto ELO.
 
 ## Referências de arquitetura e decisões
 

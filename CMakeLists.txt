@@ -31,10 +31,17 @@ enable_testing()
 # Configuração da fixture sintética local para testes do adaptador E4
 set(SYNTHETIC_FIXTURE_SRC ${CMAKE_SOURCE_DIR}/tests/fixtures/ctest)
 set(SYNTHETIC_FIXTURE_BUILD ${CMAKE_BINARY_DIR}/synthetic_fixture)
+set(TIMEOUT_FIXTURE_SRC ${CMAKE_SOURCE_DIR}/tests/fixtures/ctest_timeout)
+set(TIMEOUT_FIXTURE_BUILD ${CMAKE_BINARY_DIR}/timeout_fixture)
 
 add_custom_target(configure_synthetic_fixture ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${SYNTHETIC_FIXTURE_BUILD}
   COMMAND ${CMAKE_COMMAND} -S ${SYNTHETIC_FIXTURE_SRC} -B ${SYNTHETIC_FIXTURE_BUILD} -DCMAKE_BUILD_TYPE=Debug
+)
+
+add_custom_target(configure_timeout_fixture ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${TIMEOUT_FIXTURE_BUILD}
+  COMMAND ${CMAKE_COMMAND} -S ${TIMEOUT_FIXTURE_SRC} -B ${TIMEOUT_FIXTURE_BUILD}
 )
 
 # Testes de regressão v0.1.0 (preservados intactos)
@@ -122,3 +129,16 @@ set_tests_properties(e4_ctest_run_synthetic PROPERTIES PASS_REGULAR_EXPRESSION "
 
 add_test(NAME e4_ctest_reject_nonexistent_build COMMAND crivo adapter ctest discover --build ${CMAKE_BINARY_DIR}/nonexistent_build_dir)
 set_tests_properties(e4_ctest_reject_nonexistent_build PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME e4_ctest_reject_outside_workspace COMMAND crivo adapter ctest discover
+  --build ${SYNTHETIC_FIXTURE_BUILD} --workspace-root ${CMAKE_SOURCE_DIR}/catalog)
+set_tests_properties(e4_ctest_reject_outside_workspace PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME e4_ctest_reject_invalid_project_id COMMAND crivo adapter ctest discover
+  --build ${SYNTHETIC_FIXTURE_BUILD} --project "invalid/project")
+set_tests_properties(e4_ctest_reject_invalid_project_id PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME e4_ctest_enforce_timeout COMMAND crivo adapter ctest run
+  --build ${TIMEOUT_FIXTURE_BUILD} --evidence-dir ${CMAKE_BINARY_DIR}/timeout_evidence
+  --project timeout-fixture --timeout 1)
+set_tests_properties(e4_ctest_enforce_timeout PROPERTIES WILL_FAIL TRUE TIMEOUT 5)

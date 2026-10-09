@@ -6,6 +6,9 @@ TOOLBOX_NAME=${CRIVO_TOOLBOX:-crivo-dev}
 
 if [[ ${1:-} == "--inside-toolbox" ]]; then
   shift
+elif [[ ${1:-} == "pilot-trama" ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
+  "$SCRIPT_DIR/crivo.sh" build
+  exec "$SCRIPT_DIR/scripts/trama-pilot.sh"
 elif [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   exec toolbox run --container "$TOOLBOX_NAME" \
     "$SCRIPT_DIR/crivo.sh" --inside-toolbox "$@"
@@ -55,11 +58,14 @@ Uso: ./crivo.sh [comando]
   run         Executa perfil core
   runs        Lista execuções registradas
   events      Lista trilha de auditoria e eventos de ciclo de vida
+  pilot-trama Compila e executa testes CTest do TRAMA em modo shadow
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
 
-Variáveis: CRIVO_TOOLBOX, CRIVO_BUILD_DIR, CRIVO_DB, CRIVO_PORT, CRIVO_JOBS.
+Variáveis: CRIVO_TOOLBOX, CRIVO_BUILD_DIR, CRIVO_DB, CRIVO_PORT, CRIVO_JOBS,
+           CRIVO_TRAMA_SOURCE, CRIVO_TRAMA_BUILD, CRIVO_TRAMA_EVIDENCE,
+           CRIVO_TRAMA_TIMEOUT.
 EOF
 }
 
@@ -108,6 +114,10 @@ case "$COMMAND" in
   events)
     ensure_database
     "$BUILD_DIR/crivo" events list --db "$DB_FILE"
+    ;;
+  pilot-trama)
+    build
+    exec "$SCRIPT_DIR/scripts/trama-pilot.sh"
     ;;
   init)
     ensure_binary

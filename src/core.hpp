@@ -1,0 +1,17 @@
+#pragma once
+#include <string>
+#include <vector>
+namespace crivo {
+struct TestDefinition {
+  std::string id, name, category, subcategory, purpose, status, engine;
+  std::vector<std::string> profiles, tags;
+};
+std::vector<TestDefinition> parse_catalog(const std::string& filename);
+void initialize_db(const std::string& db);
+void register_catalog(const std::string& db, const std::vector<TestDefinition>& catalog);
+std::string serialize_catalog(const std::vector<TestDefinition>& catalog);
+std::string query_json(const std::string& db, const std::string& name);
+int run_profile(const std::string& db, const std::string& catalog_file, const std::string& profile);
+void serve(const std::string& db, const std::string& web_directory, unsigned short port);
+std::string json_escape(const std::string& s);
+}

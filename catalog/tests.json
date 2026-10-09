@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.catalog/1.0.0",
+  "tests": [
+    { "id": "catalog.schema", "name": "Validação do catálogo JSON", "category": "structural", "subcategory": "catalog", "purpose": "contract", "profiles": ["core", "catalog"], "tags": ["json", "contract"], "status": "implemented", "engine": "builtin" },
+    { "id": "sqlite.integrity", "name": "Integridade SQLite", "category": "persistence", "subcategory": "integrity", "purpose": "diagnostic", "profiles": ["core", "sqlite"], "tags": ["sqlite", "wal"], "status": "implemented", "engine": "builtin" },
+    { "id": "sqlite.wal", "name": "Modo WAL SQLite", "category": "persistence", "subcategory": "journal", "purpose": "conformance", "profiles": ["core", "sqlite"], "tags": ["sqlite", "wal"], "status": "implemented", "engine": "builtin" },
+    { "id": "http.contract", "name": "Contrato de API HTTP", "category": "interoperability", "subcategory": "http", "purpose": "contract", "profiles": ["api"], "tags": ["http", "schema"], "status": "planned", "engine": "adapter" },
+    { "id": "resilience.restart", "name": "Recuperação após interrupção", "category": "resilience", "subcategory": "restart", "purpose": "resilience", "profiles": ["offline"], "tags": ["restart", "recovery"], "status": "planned", "engine": "adapter" },
+    { "id": "security.authorization", "name": "Autorização por capacidade", "category": "security", "subcategory": "authorization", "purpose": "security", "profiles": ["security"], "tags": ["auth", "capability"], "status": "planned", "engine": "adapter" },
+    { "id": "performance.memory", "name": "Consumo de memória", "category": "performance", "subcategory": "memory", "purpose": "benchmark", "profiles": ["performance"], "tags": ["rss", "linux"], "status": "planned", "engine": "adapter" },
+    { "id": "scientific.reference", "name": "Comparação com referência científica", "category": "scientific", "subcategory": "reference", "purpose": "validation", "profiles": ["scientific"], "tags": ["reference", "uncertainty"], "status": "planned", "engine": "adapter" },
+    { "id": "accessibility.navigation", "name": "Navegação acessível", "category": "accessibility", "subcategory": "navigation", "purpose": "accessibility", "profiles": ["web"], "tags": ["a11y", "keyboard"], "status": "planned", "engine": "adapter" }
+  ]
+}

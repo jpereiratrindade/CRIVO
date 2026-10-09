@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071e38"><title>CRIVO | Engenharia de Verificação</title>
+<link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<div class="system-layout">
+<header class="topbar"><div class="mini-brand"><div class="brand-symbol" aria-hidden="true">◇</div><div><span class="brand-super">Ecossistema SisTer • Componente independente</span><h1>CRIVO</h1></div></div><div class="top-center-label">Verificação, validação e evidências</div><div class="top-context"><span class="context-pill">LOCAL · SOMENTE LEITURA</span></div></header>
+<aside class="sidebar"><nav aria-label="Navegação do CRIVO"><a href="#resumo" class="nav-link selected">◫ &nbsp; Visão geral</a><a href="#categorias" class="nav-link">▦ &nbsp; Categorias</a><a href="#catalogo" class="nav-link">☷ &nbsp; Catálogo</a><a href="#execucoes" class="nav-link">◷ &nbsp; Evidências</a></nav><div class="sidebar-footer">Plataforma local independente <strong>crivo/0.1.0</strong></div></aside>
+<main class="workspace"><div class="page-intro"><span class="eyebrow">CENTRO DE ENGENHARIA / CRIVO</span><h2>Qualidade verificável.<br>Conhecimento reutilizável.</h2><p>Uma infraestrutura para registrar o que esperamos, como verificamos, o que observamos e como aprendemos.</p></div>
+<section id="resumo" aria-labelledby="resumo-title"><div class="section-heading"><h3 id="resumo-title">Visão geral</h3><span id="connection-state">Conectando...</span></div><div class="metrics"><div class="metric"><span>Testes catalogados</span><strong id="count-tests">—</strong></div><div class="metric"><span>Implementados</span><strong id="count-ready">—</strong></div><div class="metric"><span>Últimos resultados PASS</span><strong id="count-passed">—</strong></div><div class="metric"><span>Falhas / bloqueios</span><strong id="count-issues">—</strong></div></div></section>
+<section id="categorias" aria-labelledby="categorias-title"><div class="section-heading"><h3 id="categorias-title">Categorias</h3><p>Classes de propósito e subconjuntos verificáveis</p></div><div id="category-grid" class="category-grid" aria-live="polite"><p>Carregando categorias...</p></div></section>
+<section id="catalogo" aria-labelledby="catalogo-title"><div class="section-heading"><h3 id="catalogo-title">Catálogo versionado</h3><p>Testes implementados e planejados são exibidos separadamente.</p></div><div class="panel"><div class="toolbar"><label for="filter">Filtrar categoria</label><select id="filter"><option value="">Todas as categorias</option></select></div><div class="table-scroll"><table><thead><tr><th>Teste</th><th>Categoria</th><th>Propósito</th><th>Perfis</th><th>Estado</th></tr></thead><tbody id="tests-body"></tbody></table></div></div></section>
+<section id="execucoes" aria-labelledby="execucoes-title"><div class="section-heading"><h3 id="execucoes-title">Evidências de execução</h3><p>Registros emitidos pelo executor local; esta tela não inicia testes.</p></div><div class="panel"><div class="table-scroll"><table><thead><tr><th>Horário UTC</th><th>Teste</th><th>Perfil</th><th>Resultado</th><th>Detalhe</th></tr></thead><tbody id="runs-body"></tbody></table></div></div></section>
+<footer class="footer">CRIVO v0.1.0 — Interface inspirada nos contratos visuais e na separação de responsabilidades do SisTer. &nbsp;|&nbsp; Sempre pronto. Sempre incompleto.</footer>
+</main></div>
+</body></html>

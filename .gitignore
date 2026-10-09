@@ -1,0 +1,6 @@
+build/
+.run/
+*.db
+*.db-shm
+*.db-wal
+__pycache__/

@@ -1,0 +1,3 @@
+{"schema_version":"crivo.catalog/1.0.0","tests":[
+{"id":"test.one","name":"Primeiro","category":"structural","subcategory":"schema","purpose":"diagnostic","profiles":["core"],"tags":[],"status":"implemented","engine":"builtin"},
+{"id":"test.one","name":"Segundo","category":"structural","subcategory":"schema","purpose":"diagnostic","profiles":["core"],"tags":[],"status":"implemented","engine":"builtin"}]}

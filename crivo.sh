@@ -17,7 +17,7 @@ BUILD_DIR=${CRIVO_BUILD_DIR:-build}
 DB_FILE=${CRIVO_DB:-.run/crivo.db}
 PORT=${CRIVO_PORT:-8765}
 JOBS=${CRIVO_JOBS:-2}
-COMMAND=${1:-help}
+COMMAND=${1:-up}
 
 configure() {
   cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug
@@ -34,20 +34,28 @@ ensure_binary() {
 
 ensure_database() {
   ensure_binary
-  [[ -f "$DB_FILE" ]] || "$BUILD_DIR/crivo" init --db "$DB_FILE"
+  [[ -f "$DB_FILE" ]] || {
+    "$BUILD_DIR/crivo" init --db "$DB_FILE"
+    "$BUILD_DIR/crivo" registry import --dir catalog --db "$DB_FILE"
+  }
 }
 
 show_help() {
   cat <<'EOF'
-Uso: ./crivo.sh <comando>
+Uso: ./crivo.sh [comando]
 
-  setup       Configura, compila, testa e inicializa banco
+  up | all    Tudo em 1 comando: compila, testa, valida, importa e sobe o servidor web (PADRÃO)
+  setup       Configura, compila, executa 31 CTests, valida e importa registros no banco
   build       Configura e compila
-  test        Compila e executa CTest
-  init        Inicializa banco local
+  test        Compila e executa toda a suíte CTest
+  validate    Valida integridade estrita de schemas e referências cruzadas
+  import      Importa catálogo internacional para persistência SQLite
+  plan        Gera e exibe o plano de teste resolvido para o perfil
+  init        Inicializa banco local legado
   run         Executa perfil core
   runs        Lista execuções registradas
-  serve       Web somente nesta máquina (127.0.0.1:8765)
+  events      Lista trilha de auditoria e eventos de ciclo de vida
+  serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
 
@@ -56,10 +64,27 @@ EOF
 }
 
 case "$COMMAND" in
+  up|all)
+    build
+    printf '\n=== [1/5] Executando CTest (31 testes) ===\n'
+    ctest --test-dir "$BUILD_DIR" --output-on-failure
+    printf '\n=== [2/5] Validando Catálogo Estrito ===\n'
+    "$BUILD_DIR/crivo" registry validate --dir catalog
+    printf '\n=== [3/5] Inicializando Banco e Importando Registros ===\n'
+    "$BUILD_DIR/crivo" init --db "$DB_FILE"
+    "$BUILD_DIR/crivo" registry import --dir catalog --db "$DB_FILE"
+    printf '\n=== [4/5] Executando Perfil Core ===\n'
+    "$BUILD_DIR/crivo" run --db "$DB_FILE" --profile core
+    printf '\n=== [5/5] Subindo SisTer Web Interface ===\n'
+    printf 'Acesse localmente em: http://127.0.0.1:%s\n\n' "$PORT"
+    exec "$BUILD_DIR/crivo" serve --db "$DB_FILE" --web web --bind 127.0.0.1 --port "$PORT"
+    ;;
   setup)
     build
     ctest --test-dir "$BUILD_DIR" --output-on-failure
+    "$BUILD_DIR/crivo" registry validate --dir catalog
     "$BUILD_DIR/crivo" init --db "$DB_FILE"
+    "$BUILD_DIR/crivo" registry import --dir catalog --db "$DB_FILE"
     ;;
   build)
     build
@@ -68,13 +93,29 @@ case "$COMMAND" in
     build
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     ;;
+  validate)
+    ensure_binary
+    "$BUILD_DIR/crivo" registry validate --dir catalog
+    ;;
+  import)
+    ensure_binary
+    "$BUILD_DIR/crivo" registry import --dir catalog --db "$DB_FILE"
+    ;;
+  plan)
+    ensure_binary
+    "$BUILD_DIR/crivo" plan --profile "${2:-pilot-e1}" --dir catalog
+    ;;
+  events)
+    ensure_database
+    "$BUILD_DIR/crivo" events list --db "$DB_FILE"
+    ;;
   init)
     ensure_binary
     "$BUILD_DIR/crivo" init --db "$DB_FILE"
     ;;
   run)
     ensure_database
-    "$BUILD_DIR/crivo" run --db "$DB_FILE" --profile core
+    "$BUILD_DIR/crivo" run --db "$DB_FILE" --profile "${2:-core}"
     ;;
   runs)
     ensure_database
@@ -82,6 +123,7 @@ case "$COMMAND" in
     ;;
   serve)
     ensure_database
+    printf 'CRIVO SisTer Web iniciado em: http://127.0.0.1:%s\n' "$PORT"
     exec "$BUILD_DIR/crivo" serve --db "$DB_FILE" --web web --bind 127.0.0.1 --port "$PORT"
     ;;
   serve-lan)

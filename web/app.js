@@ -15,35 +15,53 @@ function el(tag, text, className) {
   return node;
 }
 
-// Navegação por Abas
+// Navegação por Abas Reativa e Universal
 function initNavigation() {
   const links = document.querySelectorAll('.nav-link');
   const tabs = document.querySelectorAll('.tab-content');
 
   function switchTab(targetId) {
+    if (!targetId) targetId = 'inicio';
+    // Remove selected/active de todos
     links.forEach(l => l.classList.remove('selected'));
     tabs.forEach(t => t.classList.remove('active'));
 
-    const activeLink = document.querySelector(`.nav-link[data-tab="${targetId}"]`) || links[0];
+    // Encontra link e tab alvo
+    const activeLink = document.querySelector(`.nav-link[data-tab="${targetId}"]`) || document.querySelector('.nav-link[data-tab="inicio"]');
     const activeTab = $(`tab-${targetId}`) || $('tab-inicio');
 
-    activeLink.classList.add('selected');
-    activeTab.classList.add('active');
+    if (activeLink) activeLink.classList.add('selected');
+    if (activeTab) {
+      activeTab.classList.add('active');
+      const workspace = document.querySelector('.workspace');
+      if (workspace) workspace.scrollTop = 0;
+    }
   }
 
-  links.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const target = link.getAttribute('data-tab');
-      switchTab(target);
-      window.location.hash = target;
-    });
+  // Interceptar cliques em todos os links âncora internos
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      const target = href.replace('#', '');
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+        switchTab(target);
+      }
+    }
   });
 
-  const initialHash = window.location.hash.replace('#', '');
-  if (initialHash) {
-    switchTab(initialHash);
-  }
+  // Reagir a mudanças de hash (botões voltar/avançar e links)
+  window.addEventListener('hashchange', () => {
+    const currentHash = window.location.hash.replace('#', '');
+    switchTab(currentHash);
+  });
+
+  // Inicializar com a hash atual da URL
+  const initialHash = window.location.hash.replace('#', '') || 'inicio';
+  switchTab(initialHash);
 }
 
 // Renderização dos Serviços Builtin (Aba Início)

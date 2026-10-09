@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#071e38">
-  <title>CRIVO | Plataforma de Verificação e Validação</title>
+  <title>CRIVO | Plataforma de Verificação e Estaleiro Federado</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
@@ -14,7 +14,7 @@
     <div class="mini-brand">
       <div class="brand-symbol" aria-hidden="true">◇</div>
       <div>
-        <span class="brand-super">Engenharia de Confiança</span>
+        <span class="brand-super">Estaleiro de Engenharia & Confiança</span>
         <h1>CRIVO</h1>
       </div>
     </div>
@@ -27,6 +27,8 @@
   <aside class="sidebar">
     <nav aria-label="Navegação do CRIVO">
       <a href="#inicio" class="nav-link selected" data-tab="inicio"><span class="icon">◫</span> Painel Geral</a>
+      <a href="#historico" class="nav-link" data-tab="historico"><span class="icon">📊</span> Histórico & Evidências</a>
+      <a href="#estaleiro" class="nav-link" data-tab="estaleiro"><span class="icon">⚓</span> Estaleiro & Memória</a>
       <a href="#referencias" class="nav-link" data-tab="referencias"><span class="icon">◈</span> Repertório Internacional</a>
       <a href="#tecnicas" class="nav-link" data-tab="tecnicas"><span class="icon">⚙</span> Técnicas de Teste</a>
       <a href="#especificacoes" class="nav-link" data-tab="especificacoes"><span class="icon">📋</span> Especificações</a>
@@ -35,7 +37,7 @@
     </nav>
     <div class="sidebar-footer">
       <div>Infraestrutura Segura</div>
-      <strong>CRIVO v0.2.0</strong>
+      <strong>CRIVO v0.3.0</strong>
     </div>
   </aside>
 
@@ -43,32 +45,46 @@
     <!-- ABA 1: INÍCIO -->
     <section id="tab-inicio" class="tab-content active">
       <section class="hero">
-        <span class="eyebrow">VERIFICAÇÃO DE SISTEMAS & GOVERNANÇA DE QUALIDADE</span>
-        <h2 id="hero-title">Qualidade verificável.<br>Integração auditável e segura.</h2>
-        <p>CRIVO reúne um repertório internacional de normas, técnicas, oráculos e executores C++26/SQLite sem mutação de dados ou execução remota desautorizada.</p>
+        <span class="eyebrow">ESTALEIRO DE ENGENHARIA & VERIFICAÇÃO SOB DEMANDA</span>
+        <h2 id="hero-title">Verificação independente.<br>Sandboxes efêmeras & memória empírica.</h2>
+        <p>O CRIVO atua como infraestrutura neutra de testes em C++26/SQLite. O desenvolvimento solicita, o CRIVO verifica em sandbox e preserva evidências e aprendizados com proveniência integral.</p>
         <div class="hero-actions">
-          <a class="button primary" href="#referencias">Explorar Referenciais</a>
-          <a class="button secondary" href="#auditoria">Ver Trilha de Auditoria</a>
+          <a class="button primary" href="#historico">Ver Histórico de Execuções</a>
+          <a class="button secondary" href="#estaleiro">Consultar Memória Técnica</a>
         </div>
       </section>
 
       <section class="value-strip" aria-label="Métricas do Ecossistema">
         <article>
+          <strong id="count-runs">—</strong>
+          <span>Execuções / Evidências</span>
+        </article>
+        <article>
+          <strong id="count-experiences">—</strong>
+          <span>Experiências no Estaleiro</span>
+        </article>
+        <article>
           <strong id="count-references">—</strong>
           <span>Fontes Internacionais</span>
         </article>
         <article>
-          <strong id="count-techniques">—</strong>
-          <span>Técnicas Mapeadas</span>
-        </article>
-        <article>
-          <strong id="count-specs">—</strong>
-          <span>Especificações & Oráculos</span>
-        </article>
-        <article>
-          <strong id="count-ctest">31</strong>
+          <strong id="count-ctest">46</strong>
           <span>Verificações CTest PASS</span>
         </article>
+      </section>
+
+      <!-- Execuções Recentes no Painel -->
+      <section class="content-block">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">VERIFICAÇÕES RECENTES</span>
+            <h3>Últimas Execuções sob Demanda e Pilotos</h3>
+          </div>
+          <a href="#historico" class="card-link">Ver todas as execuções ↗</a>
+        </div>
+        <div id="recent-runs-container" class="table-container" aria-live="polite">
+          <p>Carregando histórico de execuções...</p>
+        </div>
       </section>
 
       <section class="content-block">
@@ -98,7 +114,42 @@
       </section>
     </section>
 
-    <!-- ABA 2: REFERÊNCIAS INTERNACIONAIS -->
+    <!-- ABA 2: HISTÓRICO & EVIDÊNCIAS -->
+    <section id="tab-historico" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">PROVENIÊNCIA & EVIDÊNCIAS (E5 / E8)</span>
+          <h2>Histórico Completo de Execuções e Testes</h2>
+        </div>
+        <span class="badge info" id="runs-badge">Carregando...</span>
+      </div>
+      <p class="tab-desc">Registros individualizados no SQLite WAL com hashes SHA-256 de artefatos JUnit/JSON, modo de isolamento, duração e resultados normalizados.</p>
+      <div id="runs-table-container" class="table-container">
+        <p>Carregando histórico...</p>
+      </div>
+    </section>
+
+    <!-- ABA 3: ESTALEIRO & MEMÓRIA TÉCNICA -->
+    <section id="tab-estaleiro" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ESTALEIRO FEDERADO (ADR-0010)</span>
+          <h2>Memória Técnica e Aprendizagem Transversal</h2>
+        </div>
+        <span class="badge success">Aprendizagem Ativa</span>
+      </div>
+      <p class="tab-desc">Experiências empíricas registradas pelos projetos participantes (TRAMA, ELO, SINAL) com contexto, alternativas investigadas, escolhas técnicas, procedimentos e evidências vinculadas.</p>
+      
+      <div class="search-bar">
+        <input type="text" id="memory-search" placeholder="Buscar experiências por termo, biblioteca, tag (ex: sqlite, wal, concorrencia)..." aria-label="Buscar experiências">
+      </div>
+
+      <div id="experiences-grid" class="grid-2">
+        <p>Carregando experiências do estaleiro...</p>
+      </div>
+    </section>
+
+    <!-- ABA 4: REFERÊNCIAS INTERNACIONAIS -->
     <section id="tab-referencias" class="tab-content">
       <div class="section-heading">
         <div>
@@ -113,7 +164,7 @@
       </div>
     </section>
 
-    <!-- ABA 3: TÉCNICAS -->
+    <!-- ABA 5: TÉCNICAS -->
     <section id="tab-tecnicas" class="tab-content">
       <div class="section-heading">
         <div>
@@ -128,7 +179,7 @@
       </div>
     </section>
 
-    <!-- ABA 4: ESPECIFICAÇÕES -->
+    <!-- ABA 6: ESPECIFICAÇÕES -->
     <section id="tab-especificacoes" class="tab-content">
       <div class="section-heading">
         <div>
@@ -143,7 +194,7 @@
       </div>
     </section>
 
-    <!-- ABA 5: AUDITORIA -->
+    <!-- ABA 7: AUDITORIA -->
     <section id="tab-auditoria" class="tab-content">
       <div class="section-heading">
         <div>
@@ -158,7 +209,7 @@
       </div>
     </section>
 
-    <!-- ABA 6: COMO CONSUMIR -->
+    <!-- ABA 8: COMO CONSUMIR -->
     <section id="tab-consumir" class="tab-content">
       <div class="section-heading">
         <div>
@@ -167,25 +218,29 @@
         </div>
       </div>
       <div class="command-block">
-        <h4>1. Executar tudo em um único comando (Compilação, 31 CTests, Validação e Web):</h4>
+        <h4>1. Verificação sob Demanda em Sandbox Efêmera (CRIVO-DEV-002):</h4>
+        <div class="code-box"><code>./crivo.sh check --target /caminho/do/projeto --profile pilot-e1</code></div>
+      </div>
+      <div class="command-block">
+        <h4>2. Consultar Memória Técnica do Estaleiro (ADR-0010):</h4>
+        <div class="code-box"><code>./crivo.sh memory-query --query "sqlite wal" --tag "offline_first"</code></div>
+      </div>
+      <div class="command-block">
+        <h4>3. Executar tudo em um único comando (Compilação, 46 CTests, Validação e Web):</h4>
         <div class="code-box"><code>./crivo.sh</code></div>
       </div>
       <div class="command-block">
-        <h4>2. Resolver Plano de Teste com Política de Falha Fechada:</h4>
+        <h4>4. Resolver Plano de Teste com Política de Falha Fechada:</h4>
         <div class="code-box"><code>./build/crivo plan --profile pilot-e1 --dir catalog --fail-closed</code></div>
       </div>
       <div class="command-block">
-        <h4>3. Validar Catálogo e Integridade de Schemas:</h4>
-        <div class="code-box"><code>./build/crivo registry validate --dir catalog</code></div>
-      </div>
-      <div class="command-block">
-        <h4>4. Consultar Trilha de Auditoria via CLI:</h4>
+        <h4>5. Consultar Trilha de Auditoria via CLI:</h4>
         <div class="code-box"><code>./build/crivo events list --db .run/crivo.db</code></div>
       </div>
     </section>
 
     <footer class="footer">
-      CRIVO v0.2.0 &nbsp;·&nbsp; <strong>Sempre pronto. Sempre incompleto.</strong> &nbsp;·&nbsp; GPL-3.0-only
+      CRIVO v0.3.0 &nbsp;·&nbsp; <strong>Sempre pronto. Sempre incompleto.</strong> &nbsp;·&nbsp; GPL-3.0-only
     </footer>
   </main>
 </div>

@@ -1,5 +1,6 @@
 #include "core.hpp"
 #include "registry/lifecycle.hpp"
+#include "memory.hpp"
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -290,8 +291,9 @@ std::string query_external_runs(const std::string& path) {
   auto db=open_db(path,true);
   auto st=prepare(db.get(),"SELECT r.run_id,r.project_id,r.mode,r.source_revision,r.source_worktree,"
     "r.status,r.total,r.passed,r.failed,r.skipped,r.started_at,r.ended_at,r.duration_ms,"
-    "r.adapter,r.adapter_version,e.evidence_path,e.artifact_path,e.artifact_sha256,e.evidence_state "
-    "FROM external_runs r JOIN evidence_index e ON e.run_id=r.run_id ORDER BY r.started_at DESC LIMIT 100;");
+    "r.adapter,r.adapter_version,COALESCE(e.evidence_path,''),COALESCE(e.artifact_path,''),"
+    "COALESCE(e.artifact_sha256,''),COALESCE(e.evidence_state,'available') "
+    "FROM external_runs r LEFT JOIN evidence_index e ON e.run_id=r.run_id ORDER BY r.started_at DESC LIMIT 100;");
   std::string out="[";
   while(sqlite3_step(st.get())==SQLITE_ROW) {
     if(out.size()>1) out+=',';
@@ -307,6 +309,23 @@ std::string query_external_runs(const std::string& path) {
       ",\"adapter\":\""+json_escape(str(st.get(),13))+"\",\"adapter_version\":\""+json_escape(str(st.get(),14))+
       "\",\"evidence_path\":\""+json_escape(str(st.get(),15))+"\",\"artifact_path\":\""+json_escape(str(st.get(),16))+
       "\",\"artifact_sha256\":\""+json_escape(str(st.get(),17))+"\",\"evidence_state\":\""+json_escape(str(st.get(),18))+"\"}";
+  }
+  return out+"]";
+}
+std::string query_builtin_runs(const std::string& path) {
+  auto db=open_db(path,true);
+  auto st=prepare(db.get(),"SELECT id, test_id, category, profile, status, detail, duration_ms, created_at FROM runs ORDER BY created_at DESC, id DESC LIMIT 100;");
+  std::string out="[";
+  while(sqlite3_step(st.get())==SQLITE_ROW) {
+    if(out.size()>1) out+=',';
+    out+="{\"id\":"+std::to_string(sqlite3_column_int64(st.get(),0))+
+      ",\"test_id\":\""+json_escape(str(st.get(),1))+
+      "\",\"category\":\""+json_escape(str(st.get(),2))+
+      "\",\"profile\":\""+json_escape(str(st.get(),3))+
+      "\",\"status\":\""+json_escape(str(st.get(),4))+
+      "\",\"detail\":\""+json_escape(str(st.get(),5))+
+      "\",\"duration_ms\":"+std::to_string(sqlite3_column_int64(st.get(),6))+
+      ",\"created_at\":\""+json_escape(str(st.get(),7))+"\"}";
   }
   return out+"]";
 }
@@ -578,7 +597,19 @@ void serve(const std::string& db,const std::string& web_directory,
       } else if(path=="/api/v1/services") {
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,"services",public_mode);
-      } else if(!public_mode && (path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests" || path=="/api/v1/runs")) {
+      } else if(path=="/api/v1/external-runs" || path=="/api/v1/runs") {
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try { resp.body()=query_external_runs(db); }
+        catch(...) { resp.body()="[]"; }
+      } else if(path=="/api/v1/runs/builtin" || path=="/api/v1/runs/local") {
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try { resp.body()=query_builtin_runs(db); }
+        catch(...) { resp.body()="[]"; }
+      } else if(path=="/api/v1/memory/experiences") {
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try { resp.body()=crivo::memory::serialize_experiences_json(crivo::memory::query_experiences(db)); }
+        catch(...) { resp.body()="[]"; }
+      } else if(!public_mode && (path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests")) {
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,name);

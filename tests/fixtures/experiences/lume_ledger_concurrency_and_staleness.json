@@ -2,7 +2,7 @@
   "schema_version": "crivo.experience-record/1.0.0",
   "experience_id": "exp-lume-ledger-concurrency-staleness",
   "project_id": "lume",
-  "source_revision": "657a2e18dd0594c66a6b3ed4cdb6ebb00eb7cc44",
+  "source_revision": "3f7299613c05d2519ac11860445642c3fccd4c1b",
   "context": {
     "domain": "Runtime Contextual Pessoal e Event Ledger",
     "language": "C++26",
@@ -23,10 +23,10 @@
   ],
   "choice": "Implementação de acquire_reentrant_lock associado a condition_variable por thread, PRAGMA busy_timeout=5000 no SQLite WAL, e cálculo de digest canônico das intenções abertas (basis_intentions_digest) registrado no evento EventPlanProposed e validado em apply_plan.",
   "procedure": "1. Proteger todas as transações com ledger_.with_exclusive_lock.\n2. Computar basis_intentions_digest antes de gerar a proposta.\n3. Persistir basis_intentions_digest e as_of_sequence no evento PLAN_PROPOSED no SQLite.\n4. Em apply_plan, recalcular o digest das intenções abertas e rejeitar com PLAN_STALE em caso de divergência.",
-  "observed_result": "100% de sucesso na bateria de qualificação formal com 7 critérios: digest não-vazio e as_of_sequence íntegro em trigger_automation e tick, invalidação com PLAN_STALE após adição/conclusão de intenções, aplicação em estado inalterado e preservação total após reabertura do Ledger de disco.",
+  "observed_result": "100% de sucesso no estresse concorrente de 6 threads e 240 eventos monotônicos, somado à qualificação das sete propriedades de staleness: snapshot canônico não vazio em trigger_automation e tick, as_of_sequence factual, criação direta de nova proposta pelo tick, PLAN_STALE após adição ou conclusão de intenções, aplicação com contexto inalterado e preservação após replay do Ledger.",
   "evidence_ref": {
-    "evidence_id": "evidence-lume-2026-10-09T20:11:16Z-8f1bbe80a690",
-    "sha256": "8f1bbe80a690622d3eb765159e6ab26c46a64f759489a950e2737036d3867442",
+    "evidence_id": "evidence-lume-2026-10-09T20:15:49Z-4b2a3980d653",
+    "sha256": "4b2a3980d653984970f38445a1f674198af5ed635e4db2e040e72df5c6c99b3c",
     "path": ".run/evidence/evidence.json"
   },
   "applicability_tags": [

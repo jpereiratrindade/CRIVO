@@ -300,6 +300,106 @@ std::string query_json(const std::string& path,const std::string& name,bool impl
     }
     return serialize_services(catalog);
   }
+  if(name=="registry/overview") {
+    auto count_table = [&](const std::string& tbl) -> int {
+      try {
+        const auto st = prepare(db.get(), "SELECT COUNT(*) FROM " + tbl + ";");
+        if (sqlite3_step(st.get()) == SQLITE_ROW) return sqlite3_column_int(st.get(), 0);
+      } catch (...) {}
+      return 0;
+    };
+    int refs = count_table("reference_versions");
+    int techs = count_table("technique_versions");
+    int specs = count_table("test_spec_versions");
+    int impls = count_table("test_implementation_versions");
+    int profs = count_table("profile_versions");
+    int evts = count_table("lifecycle_events");
+
+    return "{\"schema_version\":\"crivo.registry-overview/1.0.0\","
+           "\"references\":" + std::to_string(refs) +
+           ",\"techniques\":" + std::to_string(techs) +
+           ",\"specifications\":" + std::to_string(specs) +
+           ",\"implementations\":" + std::to_string(impls) +
+           ",\"profiles\":" + std::to_string(profs) +
+           ",\"events\":" + std::to_string(evts) + "}";
+  }
+  if(name=="registry/references") {
+    try {
+      const auto st = prepare(db.get(), "SELECT reference_id, edition, issuer, kind, title, COALESCE(status_at_registration,''), url, distribution, license_review, catalog_level, COALESCE(notes,'') FROM reference_versions ORDER BY reference_id, edition;");
+      std::string out = "[";
+      while (sqlite3_step(st.get()) == SQLITE_ROW) {
+        if (out.size() > 1) out += ',';
+        out += "{\"id\":\"" + json_escape(str(st.get(), 0)) +
+               "\",\"edition\":\"" + json_escape(str(st.get(), 1)) +
+               "\",\"issuer\":\"" + json_escape(str(st.get(), 2)) +
+               "\",\"kind\":\"" + json_escape(str(st.get(), 3)) +
+               "\",\"title\":\"" + json_escape(str(st.get(), 4)) +
+               "\",\"status_at_registration\":\"" + json_escape(str(st.get(), 5)) +
+               "\",\"url\":\"" + json_escape(str(st.get(), 6)) +
+               "\",\"distribution\":\"" + json_escape(str(st.get(), 7)) +
+               "\",\"license_review\":\"" + json_escape(str(st.get(), 8)) +
+               "\",\"catalog_level\":\"" + json_escape(str(st.get(), 9)) +
+               "\",\"notes\":\"" + json_escape(str(st.get(), 10)) + "\"}";
+      }
+      return out + "]";
+    } catch (...) { return "[]"; }
+  }
+  if(name=="registry/techniques") {
+    try {
+      const auto st = prepare(db.get(), "SELECT technique_id, version, family, name, procedure_summary, oracle_class, distribution FROM technique_versions ORDER BY technique_id, version;");
+      std::string out = "[";
+      while (sqlite3_step(st.get()) == SQLITE_ROW) {
+        if (out.size() > 1) out += ',';
+        out += "{\"id\":\"" + json_escape(str(st.get(), 0)) +
+               "\",\"version\":\"" + json_escape(str(st.get(), 1)) +
+               "\",\"family\":\"" + json_escape(str(st.get(), 2)) +
+               "\",\"name\":\"" + json_escape(str(st.get(), 3)) +
+               "\",\"procedure_summary\":\"" + json_escape(str(st.get(), 4)) +
+               "\",\"oracle_class\":\"" + json_escape(str(st.get(), 5)) +
+               "\",\"distribution\":\"" + json_escape(str(st.get(), 6)) + "\"}";
+      }
+      return out + "]";
+    } catch (...) { return "[]"; }
+  }
+  if(name=="registry/specifications") {
+    try {
+      const auto st = prepare(db.get(), "SELECT spec_id, version, COALESCE(title,''), source, category, subcategory, level, purpose, oracle_type, oracle_id, qualification FROM test_spec_versions ORDER BY spec_id, version;");
+      std::string out = "[";
+      while (sqlite3_step(st.get()) == SQLITE_ROW) {
+        if (out.size() > 1) out += ',';
+        out += "{\"id\":\"" + json_escape(str(st.get(), 0)) +
+               "\",\"version\":\"" + json_escape(str(st.get(), 1)) +
+               "\",\"title\":\"" + json_escape(str(st.get(), 2)) +
+               "\",\"source\":\"" + json_escape(str(st.get(), 3)) +
+               "\",\"category\":\"" + json_escape(str(st.get(), 4)) +
+               "\",\"subcategory\":\"" + json_escape(str(st.get(), 5)) +
+               "\",\"level\":\"" + json_escape(str(st.get(), 6)) +
+               "\",\"purpose\":\"" + json_escape(str(st.get(), 7)) +
+               "\",\"oracle_type\":\"" + json_escape(str(st.get(), 8)) +
+               "\",\"oracle_id\":\"" + json_escape(str(st.get(), 9)) +
+               "\",\"qualification\":\"" + json_escape(str(st.get(), 10)) + "\"}";
+      }
+      return out + "]";
+    } catch (...) { return "[]"; }
+  }
+  if(name=="registry/events") {
+    try {
+      const auto st = prepare(db.get(), "SELECT event_id, entity_type, entity_ref, event_type, occurred_at, recorded_at, cause, authority_ref FROM lifecycle_events ORDER BY recorded_at DESC LIMIT 50;");
+      std::string out = "[";
+      while (sqlite3_step(st.get()) == SQLITE_ROW) {
+        if (out.size() > 1) out += ',';
+        out += "{\"event_id\":\"" + json_escape(str(st.get(), 0)) +
+               "\",\"entity_type\":\"" + json_escape(str(st.get(), 1)) +
+               "\",\"entity_ref\":\"" + json_escape(str(st.get(), 2)) +
+               "\",\"event_type\":\"" + json_escape(str(st.get(), 3)) +
+               "\",\"occurred_at\":\"" + json_escape(str(st.get(), 4)) +
+               "\",\"recorded_at\":\"" + json_escape(str(st.get(), 5)) +
+               "\",\"cause\":\"" + json_escape(str(st.get(), 6)) +
+               "\",\"authority_ref\":\"" + json_escape(str(st.get(), 7)) + "\"}";
+      }
+      return out + "]";
+    } catch (...) { return "[]"; }
+  }
   if(name=="runs") {
     const auto st=prepare(db.get(),"SELECT id,test_id,category,profile,status,detail,duration_ms,created_at FROM runs ORDER BY id DESC LIMIT 100;");
     std::string out="[";
@@ -375,6 +475,11 @@ void serve(const std::string& db,const std::string& web_directory,
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,name);
+      } else if(path.starts_with("/api/v1/registry/")) {
+        const auto name=path.substr(std::string("/api/v1/").size());
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try { resp.body()=query_json(db,name); }
+        catch(...) { resp.result(http::status::not_found); resp.body()="{\"error\":\"REGISTRY_QUERY_NOT_FOUND\"}"; }
       } else if(path.starts_with("/api/v1/services/")) {
         const auto id=path.substr(std::string("/api/v1/services/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");

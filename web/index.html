@@ -1,51 +1,193 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#071e38"><title>CRIVO | Verificação confiável</title>
-<link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071e38">
+  <title>CRIVO | Plataforma de Verificação e Validação</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
 </head>
 <body>
 <div class="system-layout">
-<header class="topbar">
-  <div class="mini-brand"><div class="brand-symbol" aria-hidden="true">◇</div><div><span class="brand-super">Engenharia de confiança</span><h1>CRIVO</h1></div></div>
-  <div class="top-center-label">Verificação local, objetiva e reutilizável</div>
-  <div class="top-context"><span class="context-pill">SOMENTE LEITURA</span></div>
-</header>
-<aside class="sidebar">
-  <nav aria-label="Navegação do CRIVO">
-    <a href="#inicio" class="nav-link selected">◫ &nbsp; Início</a>
-    <a href="#servicos" class="nav-link">◇ &nbsp; Serviços</a>
-    <a href="#consumir" class="nav-link">→ &nbsp; Como consumir</a>
-  </nav>
-  <div class="sidebar-footer">Infraestrutura independente<strong>CRIVO</strong></div>
-</aside>
-<main class="workspace">
-  <section id="inicio" class="hero" aria-labelledby="hero-title">
-    <span class="eyebrow">VERIFICAÇÃO COMO SERVIÇO</span>
-    <h2 id="hero-title">Qualidade verificável.<br>Integração simples.</h2>
-    <p>CRIVO reúne verificações reutilizáveis e entrega resultados objetivos sem assumir controle do sistema avaliado.</p>
-    <div class="hero-actions"><a class="button primary" href="#servicos">Conhecer serviços</a><a class="button secondary" href="#consumir">Como integrar</a></div>
-  </section>
-  <section class="value-strip" aria-label="Características do serviço">
-    <article><strong id="service-count">—</strong><span>serviços disponíveis</span></article>
-    <article><strong>Local-first</strong><span>dados permanecem no ambiente</span></article>
-    <article><strong>Somente leitura</strong><span>interface sem execução remota</span></article>
-  </section>
-  <section id="servicos" aria-labelledby="services-title">
-    <div class="section-heading"><div><span class="eyebrow">CAPACIDADES ATIVAS</span><h3 id="services-title">Serviços disponíveis agora</h3></div><span id="connection-state">Conectando...</span></div>
-    <div id="service-grid" class="service-grid" aria-live="polite"><p>Carregando serviços...</p></div>
-  </section>
-  <section id="consumir" class="consume-panel" aria-labelledby="consume-title">
-    <div><span class="eyebrow">INTEGRAÇÃO</span><h3 id="consume-title">Consumo direto e previsível</h3><p>Execute localmente por perfil. Integrações externas futuras usarão contratos versionados e modo <em>shadow</em>.</p></div>
-    <div class="command"><span>Execução local</span><code>./crivo.sh run</code></div>
-  </section>
-  <section class="trust-panel" aria-labelledby="trust-title">
-    <div><span class="eyebrow">FRONTEIRA DE CONFIANÇA</span><h3 id="trust-title">O que CRIVO garante nesta versão</h3></div>
-    <ul><li>Exibe somente capacidades implementadas.</li><li>Não inicia testes pelo navegador.</li><li>Não declara certificação ou conformidade normativa.</li><li>Resultados valem no contexto local declarado.</li></ul>
-  </section>
-  <footer class="footer">CRIVO — Sempre pronto. Sempre incompleto. &nbsp;·&nbsp; GPL-3.0-only</footer>
-</main>
+  <header class="topbar">
+    <div class="mini-brand">
+      <div class="brand-symbol" aria-hidden="true">◇</div>
+      <div>
+        <span class="brand-super">Engenharia de Confiança</span>
+        <h1>CRIVO</h1>
+      </div>
+    </div>
+    <div class="top-center-label">Sempre pronto. Sempre incompleto.</div>
+    <div class="top-context">
+      <span class="context-pill" id="security-pill">SOMENTE LEITURA</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav aria-label="Navegação do CRIVO">
+      <a href="#inicio" class="nav-link selected" data-tab="inicio"><span class="icon">◫</span> Painel Geral</a>
+      <a href="#referencias" class="nav-link" data-tab="referencias"><span class="icon">◈</span> Repertório Internacional</a>
+      <a href="#tecnicas" class="nav-link" data-tab="tecnicas"><span class="icon">⚙</span> Técnicas de Teste</a>
+      <a href="#especificacoes" class="nav-link" data-tab="especificacoes"><span class="icon">📋</span> Especificações</a>
+      <a href="#auditoria" class="nav-link" data-tab="auditoria"><span class="icon">📜</span> Trilha de Auditoria</a>
+      <a href="#consumir" class="nav-link" data-tab="consumir"><span class="icon">→</span> Como Consumir</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div>Infraestrutura Segura</div>
+      <strong>CRIVO v0.2.0</strong>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <!-- ABA 1: INÍCIO -->
+    <section id="tab-inicio" class="tab-content active">
+      <section class="hero">
+        <span class="eyebrow">VERIFICAÇÃO DE SISTEMAS & GOVERNANÇA DE QUALIDADE</span>
+        <h2 id="hero-title">Qualidade verificável.<br>Integração auditável e segura.</h2>
+        <p>CRIVO reúne um repertório internacional de normas, técnicas, oráculos e executores C++26/SQLite sem mutação de dados ou execução remota desautorizada.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#referencias">Explorar Referenciais</a>
+          <a class="button secondary" href="#auditoria">Ver Trilha de Auditoria</a>
+        </div>
+      </section>
+
+      <section class="value-strip" aria-label="Métricas do Ecossistema">
+        <article>
+          <strong id="count-references">—</strong>
+          <span>Fontes Internacionais</span>
+        </article>
+        <article>
+          <strong id="count-techniques">—</strong>
+          <span>Técnicas Mapeadas</span>
+        </article>
+        <article>
+          <strong id="count-specs">—</strong>
+          <span>Especificações & Oráculos</span>
+        </article>
+        <article>
+          <strong id="count-ctest">31</strong>
+          <span>Verificações CTest PASS</span>
+        </article>
+      </section>
+
+      <section class="content-block">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">CAPACIDADES BUILTIN</span>
+            <h3>Serviços Operacionais Locais</h3>
+          </div>
+          <span class="badge success" id="connection-state">Conectando...</span>
+        </div>
+        <div id="service-grid" class="grid-3" aria-live="polite">
+          <p>Carregando serviços...</p>
+        </div>
+      </section>
+
+      <section class="trust-panel">
+        <div>
+          <span class="eyebrow">FRONTEIRA DE SEGURANÇA REARIT-P005</span>
+          <h3>Garantias e Isolamento Desta Interface</h3>
+        </div>
+        <ul>
+          <li><strong>Modo Estritamente Somente Leitura:</strong> Nenhum comando ou teste pode ser disparado via web.</li>
+          <li><strong>Rejeição de Métodos Mutantes:</strong> Métodos POST, PUT, DELETE retornam HTTP 405 Method Not Allowed.</li>
+          <li><strong>Proteção de Topologia:</strong> Segredos, credenciais e caminhos sensíveis do host não são expostos.</li>
+          <li><strong>Auditabilidade:</strong> Todos os registros e eventos possuem integridade assegurada por digest SHA-256.</li>
+        </ul>
+      </section>
+    </section>
+
+    <!-- ABA 2: REFERÊNCIAS INTERNACIONAIS -->
+    <section id="tab-referencias" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">REPERTÓRIO INTERNACIONAL (E1)</span>
+          <h2>Normas, Guias, Frameworks & Ferramentas</h2>
+        </div>
+        <span class="badge info">8 Fontes Indexadas</span>
+      </div>
+      <p class="tab-desc">Fontes internacionais registradas estritamente como metadados estruturados, com direitos de distribuição e limites interpretativos declarados.</p>
+      <div id="references-grid" class="grid-2">
+        <p>Carregando referências...</p>
+      </div>
+    </section>
+
+    <!-- ABA 3: TÉCNICAS -->
+    <section id="tab-tecnicas" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">TAXONOMIA METODOLÓGICA</span>
+          <h2>Técnicas de Projeto de Teste Mapeadas</h2>
+        </div>
+        <span class="badge info">4 Técnicas Autorais</span>
+      </div>
+      <p class="tab-desc">Técnicas vinculadas a normas internacionais com classes de oráculo e regras de particionamento de entradas.</p>
+      <div id="techniques-grid" class="grid-2">
+        <p>Carregando técnicas...</p>
+      </div>
+    </section>
+
+    <!-- ABA 4: ESPECIFICAÇÕES -->
+    <section id="tab-especificacoes" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">CONTRATOS E ORÁCULOS</span>
+          <h2>Especificações de Teste do CRIVO</h2>
+        </div>
+        <span class="badge info">3 Especificações Ativas</span>
+      </div>
+      <p class="tab-desc">Especificações com oráculos determinísticos (predicados, invariantes de transação e códigos de status).</p>
+      <div id="specifications-grid" class="grid-2">
+        <p>Carregando especificações...</p>
+      </div>
+    </section>
+
+    <!-- ABA 5: AUDITORIA -->
+    <section id="tab-auditoria" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">TRILHA DE AUDITORIA & GENEALOGIA (E3)</span>
+          <h2>Eventos de Ciclo de Vida Append-Only</h2>
+        </div>
+        <span class="badge success">Integridade SHA-256</span>
+      </div>
+      <p class="tab-desc">Histórico imutável de nascimento, qualificação e reconciliações de execuções com hash canônico.</p>
+      <div id="events-timeline" class="events-timeline">
+        <p>Carregando eventos de auditoria...</p>
+      </div>
+    </section>
+
+    <!-- ABA 6: COMO CONSUMIR -->
+    <section id="tab-consumir" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">INTEGRAÇÃO POR LINHA DE COMANDO</span>
+          <h2>Como Executar e Auditar Localmente</h2>
+        </div>
+      </div>
+      <div class="command-block">
+        <h4>1. Executar tudo em um único comando (Compilação, 31 CTests, Validação e Web):</h4>
+        <div class="code-box"><code>./crivo.sh</code></div>
+      </div>
+      <div class="command-block">
+        <h4>2. Resolver Plano de Teste com Política de Falha Fechada:</h4>
+        <div class="code-box"><code>./build/crivo plan --profile pilot-e1 --dir catalog --fail-closed</code></div>
+      </div>
+      <div class="command-block">
+        <h4>3. Validar Catálogo e Integridade de Schemas:</h4>
+        <div class="code-box"><code>./build/crivo registry validate --dir catalog</code></div>
+      </div>
+      <div class="command-block">
+        <h4>4. Consultar Trilha de Auditoria via CLI:</h4>
+        <div class="code-box"><code>./build/crivo events list --db .run/crivo.db</code></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      CRIVO v0.2.0 &nbsp;·&nbsp; <strong>Sempre pronto. Sempre incompleto.</strong> &nbsp;·&nbsp; GPL-3.0-only
+    </footer>
+  </main>
 </div>
 </body>
 </html>

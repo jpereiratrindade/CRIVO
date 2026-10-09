@@ -43,4 +43,16 @@ Ver [`docs/CRIVO-001_v0.1.0.md`](docs/CRIVO-001_v0.1.0.md) e [`docs/ROADMAP.md`]
 
 Referência visual e conceitual: `jpereiratrindade/SisTer` (`docs/architecture/INTERFACE.md`, `SISTER-WEB-RELATIONAL-SURFACE-001`, ADR-0028, web/styles.css). Reuso de *padrão*, não incorporação de identidade ou autoridade do SisTer.
 
+## Evolução controlada
+
+A baseline importada está congelada no Git. A missão v0.2.0, seu documento de
+projeto, a decisão inicial de migração e a evidência de reprodução estão em
+[`docs/CRIVO-DEV-001_v0.2.0.md`](docs/CRIVO-DEV-001_v0.2.0.md),
+[`docs/CRIVO-PROJ-001_v0.2.0.md`](docs/CRIVO-PROJ-001_v0.2.0.md),
+[`docs/adr/ADR-0001-evolucao-do-catalogo.md`](docs/adr/ADR-0001-evolucao-do-catalogo.md)
+e [`docs/evidence/E0-baseline-2026-10-09.md`](docs/evidence/E0-baseline-2026-10-09.md).
+
+Capacidades descritas nesses documentos como candidatas ou planejadas não são
+consideradas implementadas sem código, testes e evidência correspondentes.
+
 > Sempre pronto. Sempre incompleto.

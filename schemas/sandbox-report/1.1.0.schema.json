@@ -10,7 +10,9 @@
     "isolation_status": {"type": "string", "enum": ["ENFORCED", "DEGRADED", "BLOCKED", "NOT_REQUIRED"]},
     "network_mode": {"type": "string", "enum": ["DISABLED", "LOOPBACK_ONLY", "HOST"]},
     "ro_mounts": {"type": "array", "items": {"type": "string"}},
+    "rw_bind_mounts": {"type": "array", "items": {"type": "string"}},
     "tmpfs_mounts": {"type": "array", "items": {"type": "string"}},
+    "capabilities_enforced": {"type": "array", "items": {"type": "string"}},
     "limits_enforced": {"type": "object", "properties": {"timeout_ms": {"type": "integer"}, "max_memory_mb": {"type": "integer"}, "max_processes": {"type": "integer"}}, "required": ["timeout_ms"], "additionalProperties": false},
     "execution": {"type": "object", "properties": {"exit_code": {"type": "integer"}, "termination_reason": {"type": "string", "enum": ["NORMAL", "TIMEOUT", "OUT_OF_MEMORY", "PROCESS_LIMIT", "BLOCKED_BY_POLICY", "SIGNAL_KILLED"]}, "duration_ms": {"type": "integer"}, "peak_rss_kb": {"type": "integer"}}, "required": ["exit_code", "termination_reason", "duration_ms"], "additionalProperties": false}
   },

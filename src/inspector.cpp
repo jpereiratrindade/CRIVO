@@ -315,6 +315,41 @@ CheckSummary execute_check(const CheckOptions& opts) {
     sbx_config.backend = btype;
     sbx_config.limits.timeout = std::chrono::seconds(opts.timeout_seconds);
 
+    // Validação estrita do backend antes da resolução
+    if (!opts.backend.empty() && opts.backend != "auto" &&
+        opts.backend != "bubblewrap" && opts.backend != "podman" &&
+        opts.backend != "host_isolated") {
+        summary.overall_status = "BLOCKED";
+        summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
+
+        sandbox::ExecutionResult blocked_sbx;
+        blocked_sbx.exit_code = -1;
+        blocked_sbx.isolation_driver = "none";
+        blocked_sbx.isolation_status = "BLOCKED";
+
+        fs::path sbx_report_file = evidence_path / "sandbox-report.json";
+        {
+            std::ofstream rf(sbx_report_file);
+            rf << sandbox::generate_sandbox_report_json(sbx_config, blocked_sbx, instance_id);
+        }
+
+        fs::path ev_file = evidence_path / "evidence.json";
+        {
+            boost::json::object ev_pkg;
+            ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
+            ev_pkg["evidence_id"] = summary.request_id;
+            ev_pkg["project_id"] = summary.project_id;
+            ev_pkg["status"] = "BLOCKED";
+            ev_pkg["cause"] = "Unknown sandbox backend: " + opts.backend;
+            std::ofstream ef(ev_file);
+            ef << boost::json::serialize(ev_pkg);
+        }
+
+        summary.evidence_path = ev_file.string();
+        summary.evidence_sha256 = calculate_file_sha256(ev_file);
+        return summary;
+    }
+
     // Validação estrita de sandbox e qualificação pré-execução quando exigida
     bool sandbox_qualified_enforced = false;
     if (opts.isolation == "sandbox" || opts.backend == "bubblewrap" || opts.backend == "podman") {
@@ -357,8 +392,10 @@ CheckSummary execute_check(const CheckOptions& opts) {
 
     std::string start_time = generate_utc_timestamp();
     auto start_steady = std::chrono::steady_clock::now();
+    auto concrete_driver_ptr = sandbox::create_driver(btype);
+    std::string concrete_driver_name = concrete_driver_ptr ? std::string(concrete_driver_ptr->name()) : "none";
     std::string observed_isolation = sandbox_qualified_enforced ? "ENFORCED" : "NOT_REQUIRED";
-    std::string observed_driver = sandbox_qualified_enforced ? ((btype == sandbox::BackendType::Bubblewrap) ? "bubblewrap" : (btype == sandbox::BackendType::Podman ? "podman" : "host_isolated")) : "none";
+    std::string observed_driver = sandbox_qualified_enforced ? concrete_driver_name : "none";
 
     // 5. Execute tests in Sandbox com oráculos reais
     std::ostringstream junit_xml;
@@ -391,23 +428,27 @@ CheckSummary execute_check(const CheckOptions& opts) {
         bool oracle_executed = false;
         bool test_passed = false;
         std::string failure_msg;
+        std::vector<std::string> test_cmd;
 
         if (test_case.adapter == "builtin") {
             oracle_executed = true;
-            const auto result = oracles::run(test_case.spec_id, target.root_path, sbx_workspace);
-            failure_msg = result.message;
-            test_passed = result.status == oracles::Status::Pass;
-            if (result.status == oracles::Status::Blocked || result.status == oracles::Status::NotApplicable) {
-                summary.blocked_tests++;
-                junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
-                junit_xml << "      <error message=\"" << oracles::to_string(result.status) << ": " << result.message << "\"/>\n";
-                junit_xml << "    </testcase>\n";
-                continue;
+            if (sandbox_qualified_enforced) {
+                // Executa oráculo interno dentro da sandbox Bubblewrap isolada
+                test_cmd = {"crivo", "oracle", test_case.spec_id, "--target", "/target", "--workspace", "/workspace"};
+            } else {
+                // Execução in-process direta quando o isolamento não foi exigido
+                const auto result = oracles::run(test_case.spec_id, target.root_path, sbx_workspace);
+                failure_msg = result.message;
+                test_passed = result.status == oracles::Status::Pass;
+                if (result.status == oracles::Status::Blocked || result.status == oracles::Status::NotApplicable) {
+                    summary.blocked_tests++;
+                    junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
+                    junit_xml << "      <error message=\"" << oracles::to_string(result.status) << ": " << result.message << "\"/>\n";
+                    junit_xml << "    </testcase>\n";
+                    continue;
+                }
             }
-        }
-
-        std::vector<std::string> test_cmd;
-        if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
+        } else if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
             oracle_executed = true;
             test_cmd = {"ctest", "--test-dir", "/target", "--output-on-failure"};
         }
@@ -429,22 +470,26 @@ CheckSummary execute_check(const CheckOptions& opts) {
             exec_res = sandbox::run_in_sandbox(sbx_config, test_cmd);
             observed_driver = exec_res.isolation_driver;
             observed_isolation = exec_res.isolation_status;
+            test_passed = (exec_res.exit_code == 0);
+            if (exec_res.exit_code != 0) {
+                failure_msg = exec_res.stderr_output.empty() ? exec_res.stdout_output : exec_res.stderr_output;
+            }
         }
 
         const bool strong_isolation_missing = opts.isolation == "sandbox" &&
             !test_cmd.empty() && exec_res.isolation_status != "ENFORCED";
 
-        if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing) {
+        if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing || exec_res.exit_code == 2) {
             summary.blocked_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
-            junit_xml << "      <error message=\"Sandbox isolation blocked\"/>\n";
+            junit_xml << "      <error message=\"" << (failure_msg.empty() ? "Sandbox isolation blocked" : failure_msg) << "\"/>\n";
             junit_xml << "    </testcase>\n";
         } else if (exec_res.termination == sandbox::TerminationReason::Timeout) {
             summary.failed_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <failure message=\"Timeout exceeded in sandbox\"/>\n";
             junit_xml << "    </testcase>\n";
-        } else if (exec_res.exit_code == 0 && test_passed) {
+        } else if (test_passed) {
             summary.passed_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\" time=\""
                       << (static_cast<double>(exec_res.duration.count()) / 1000.0) << "\"/>\n";
@@ -478,17 +523,32 @@ CheckSummary execute_check(const CheckOptions& opts) {
     overall_sbx.isolation_driver = observed_driver;
     overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" : observed_isolation;
     overall_sbx.duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_steady - start_steady);
-    if (observed_driver == "bubblewrap" || sbx_config.backend == sandbox::BackendType::Bubblewrap) {
+    if (observed_driver == "bubblewrap" || concrete_driver_name == "bubblewrap") {
         overall_sbx.capabilities_enforced = {
             "ro_target_binding",
             "rw_workspace_binding",
             "unshare_all",
+            "unshare_pid",
+            "unshare_user",
+            "unshare_ipc",
+            "unshare_uts",
             "tmpfs_tmp",
             "die_with_parent",
-            "rlimit_nproc",
             "rlimit_as"
         };
         if (!sbx_config.enable_network) overall_sbx.capabilities_enforced.push_back("unshare_net");
+    } else if (observed_driver == "podman" || concrete_driver_name == "podman") {
+        overall_sbx.capabilities_enforced = {
+            "ro_target_volume",
+            "rw_workspace_volume",
+            "no_new_privileges"
+        };
+        if (!sbx_config.enable_network) overall_sbx.capabilities_enforced.push_back("network_none");
+    } else if (observed_driver == "host_isolated" || concrete_driver_name == "host_isolated") {
+        overall_sbx.capabilities_enforced = {
+            "rlimit_nproc",
+            "rlimit_as"
+        };
     }
 
     fs::path sbx_report_file = evidence_path / "sandbox-report.json";

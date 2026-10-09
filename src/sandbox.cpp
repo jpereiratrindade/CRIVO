@@ -269,6 +269,13 @@ ExecutionResult BubblewrapDriver::execute(
         bwrap_cmd.insert(bwrap_cmd.end(), {"--chdir", "/workspace"});
     }
 
+    // Mount CRIVO binary directory read-only so internal worker and oracles can execute inside sandbox
+    std::error_code ec_exe;
+    fs::path self_exe = fs::canonical("/proc/self/exe", ec_exe);
+    if (!ec_exe && fs::exists(self_exe)) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--dir", "/opt/crivo", "--ro-bind", self_exe.parent_path().string(), "/opt/crivo"});
+    }
+
     // Isolations
     bwrap_cmd.push_back("--unshare-all");
     if (!config.enable_network) {
@@ -283,7 +290,7 @@ ExecutionResult BubblewrapDriver::execute(
     }
 
     std::vector<std::pair<std::string, std::string>> envs = {
-        {"PATH", "/usr/bin:/bin"},
+        {"PATH", "/opt/crivo:/usr/bin:/bin"},
         {"HOME", "/tmp"},
         {"LANG", "C.UTF-8"}
     };
@@ -530,12 +537,28 @@ SandboxQualificationResult qualify_backend(BackendType backend, const fs::path& 
         res.checks.push_back({"ro_target_immutable", ok, det});
     }
 
-    // Check 3: Network isolation (Negative proof: must fail to connect!)
+    // Check 3: Network isolation (Negative proof: must fail to connect with confirmed kernel error)
     {
-        auto exec = driver->execute(cfg, {"python3", "-c", "import socket; s=socket.socket(); s.settimeout(0.5); s.connect(('1.1.1.1', 80))"});
-        bool ok = (exec.exit_code != 0);
-        std::string det = ok ? "Network packets strictly blocked by unshare-net namespace"
-                             : "Network access was possible inside sandbox";
+        auto exec = driver->execute(cfg, {"python3", "-c",
+            "import socket, sys\n"
+            "try:\n"
+            "    s = socket.socket()\n"
+            "    s.settimeout(0.5)\n"
+            "    s.connect(('1.1.1.1', 80))\n"
+            "    sys.exit(0)\n"
+            "except (OSError, socket.error) as e:\n"
+            "    sys.stderr.write('NETWORK_BLOCKED_OK: ' + str(e) + '\\n')\n"
+            "    sys.exit(42)\n"
+        });
+        bool ok = (exec.exit_code == 42) && (exec.stderr_output.find("NETWORK_BLOCKED_OK") != std::string::npos);
+        std::string det;
+        if (ok) {
+            det = "Network packets strictly blocked by unshare-net namespace (confirmed via kernel unreachable error)";
+        } else if (exec.exit_code == 0) {
+            det = "Security breach: network connection succeeded inside sandbox!";
+        } else {
+            det = "Network probe failed to execute or verify isolation: exit_code=" + std::to_string(exec.exit_code) + " err=" + exec.stderr_output;
+        }
         res.checks.push_back({"network_isolation", ok, det});
     }
 

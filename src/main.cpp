@@ -6,6 +6,7 @@
 #include "adapters/ctest_adapter.hpp"
 #include "inspector.hpp"
 #include "sandbox.hpp"
+#include "builtin_oracles.hpp"
 #include "memory.hpp"
 #include "dev_context.hpp"
 #include "mcp_server.hpp"
@@ -41,6 +42,7 @@ int main(int argc, char** argv) {
     std::string events_action;
     std::string memory_action;
     std::string sandbox_action = "qualify";
+    std::string oracle_spec_id;
     std::string adapter_type, adapter_action;
     int option_start = 2;
 
@@ -93,6 +95,10 @@ int main(int argc, char** argv) {
       if (sandbox_action != "qualify" && sandbox_action != "status") {
         throw std::runtime_error("Acao de sandbox desconhecida: " + sandbox_action);
       }
+    } else if (command == "oracle") {
+      if (argc < 3) throw std::runtime_error("Uso: crivo oracle <spec_id> [opcoes]");
+      oracle_spec_id = argv[2];
+      option_start = 3;
     }
 
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
@@ -138,7 +144,7 @@ int main(int argc, char** argv) {
       else if (a == "--build" && i + 1 < argc) build_dir = argv[++i];
       else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
       else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
-      else if (a == "--workspace-root" && i + 1 < argc) workspace_root = argv[++i];
+      else if ((a == "--workspace-root" || a == "--workspace") && i + 1 < argc) workspace_root = argv[++i];
       else if (a == "--record-db" && i + 1 < argc) record_db = argv[++i];
       else if (a == "--source-revision" && i + 1 < argc) source_revision = argv[++i];
       else if (a == "--source-worktree" && i + 1 < argc) source_worktree = argv[++i];
@@ -371,6 +377,13 @@ int main(int argc, char** argv) {
       }
     }
     if (command == "check") {
+      if (!sandbox_backend.empty() && sandbox_backend != "auto" &&
+          sandbox_backend != "bubblewrap" && sandbox_backend != "podman" &&
+          sandbox_backend != "host_isolated") {
+        std::cerr << "CRIVO CHECK BLOCKED: Backend de sandbox desconhecido: " << sandbox_backend << "\n";
+        return 2;
+      }
+
       crivo::check::CheckOptions opts;
       opts.target_path = target_path.empty() ? "." : target_path;
       opts.profile = profile;
@@ -457,6 +470,21 @@ int main(int argc, char** argv) {
         }
       }
       return qres.passed ? 0 : 2;
+    }
+    if (command == "oracle") {
+      std::filesystem::path tgt = target_path.empty() ? "." : target_path;
+      std::filesystem::path ws = workspace_root.empty() ? "." : workspace_root;
+      auto res = crivo::oracles::run(oracle_spec_id, tgt, ws);
+      if (res.status == crivo::oracles::Status::Pass) {
+        std::cout << "ORACLE PASS: " << res.message << "\n";
+        return 0;
+      }
+      if (res.status == crivo::oracles::Status::Blocked || res.status == crivo::oracles::Status::NotApplicable) {
+        std::cerr << "ORACLE BLOCKED: " << res.message << "\n";
+        return 2;
+      }
+      std::cerr << "ORACLE FAIL: " << res.message << "\n";
+      return 1;
     }
     if (command == "adapter") {
       if (adapter_type == "ctest") {

@@ -44,6 +44,11 @@ A projeção não publica caminhos, comandos internos, SQL, variáveis de ambien
 topologia, logs brutos, segredos ou detalhes de contenção. Evidências detalhadas
 e contexto de ambiente exigirão interface autorizada futura.
 
-Serviços `PLANNED` aparecem para transparência do planejamento, sempre com modo
-`NOT_AVAILABLE` e evidência `NONE`. Sua presença não indica implementação,
-execução ou evidência.
+Na API exposta em bind de rede, somente serviços `IMPLEMENTED` são publicados.
+Serviços `PLANNED` permanecem consultáveis pela CLI e pela API em loopback para
+engenharia, sempre com modo `NOT_AVAILABLE` e evidência `NONE`. Sua presença
+interna não indica implementação, execução ou evidência.
+
+Endpoints de catálogo, categorias e execuções são restritos ao bind loopback.
+O modo LAN oferece apenas a projeção mínima de serviços implementados e arquivos
+estáticos da apresentação.

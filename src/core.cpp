@@ -245,7 +245,7 @@ int run_profile(const std::string& path,const std::string& file,const std::strin
   std::cout<<"Selecionados: "<<selected<<" | falhas: "<<failed<<" | bloqueados: "<<blocked<<"\n";
   return (failed||blocked)?1:0;
 }
-std::string query_json(const std::string& path,const std::string& name) {
+std::string query_json(const std::string& path,const std::string& name,bool implemented_only) {
   auto db=open_db(path,true);
   if(name=="overview") {
     const auto total=prepare(db.get(),"SELECT COUNT(*), SUM(status='implemented') FROM test_catalog;");
@@ -285,7 +285,9 @@ std::string query_json(const std::string& path,const std::string& name) {
     return out+"]";
   }
   if(name=="services") {
-    const auto st=prepare(db.get(),"SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog ORDER BY category,id;");
+    const auto st=prepare(db.get(),implemented_only?
+      "SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog WHERE status='implemented' ORDER BY category,id;":
+      "SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog ORDER BY category,id;");
     std::vector<TestDefinition> catalog;
     while(sqlite3_step(st.get())==SQLITE_ROW) {
       TestDefinition row{str(st.get(),0),str(st.get(),1),str(st.get(),2),str(st.get(),3),
@@ -314,11 +316,13 @@ std::string query_json(const std::string& path,const std::string& name) {
   }
   throw std::runtime_error("Consulta nao suportada: "+name);
 }
-std::string query_service_json(const std::string& path,const std::string& id) {
+std::string query_service_json(const std::string& path,const std::string& id,bool implemented_only) {
   if(!std::regex_match(id,std::regex("^[a-z][a-z0-9_.-]{2,100}$")))
     throw std::runtime_error("ID de servico invalido");
   auto db=open_db(path,true);
-  auto st=prepare(db.get(),"SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog WHERE id=?;");
+  auto st=prepare(db.get(),implemented_only?
+    "SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog WHERE id=? AND status='implemented';":
+    "SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog WHERE id=?;");
   bind_text(st.get(),1,id);
   if(sqlite3_step(st.get())!=SQLITE_ROW) throw std::runtime_error("Servico desconhecido: "+id);
   TestDefinition row{str(st.get(),0),str(st.get(),1),str(st.get(),2),str(st.get(),3),
@@ -341,6 +345,7 @@ void serve(const std::string& db,const std::string& web_directory,
   if(address_error)
     throw std::runtime_error("Endereco de bind invalido: "+bind_address);
   tcp::acceptor acceptor(context,{address,port});
+  const bool public_mode=!address.is_loopback();
   std::cout<<"CRIVO SisTer Web http://"<<bind_address<<":"<<port
            <<" (somente leitura)\n";
   for (;;) {
@@ -363,14 +368,17 @@ void serve(const std::string& db,const std::string& web_directory,
       resp.keep_alive(false);
       if(req.method()!=http::verb::get) {
         resp.result(http::status::method_not_allowed);resp.body()="Metodo nao permitido";
-      } else if(path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests" || path=="/api/v1/runs" || path=="/api/v1/services") {
+      } else if(path=="/api/v1/services") {
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        resp.body()=query_json(db,"services",public_mode);
+      } else if(!public_mode && (path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests" || path=="/api/v1/runs")) {
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,name);
       } else if(path.starts_with("/api/v1/services/")) {
         const auto id=path.substr(std::string("/api/v1/services/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
-        try { resp.body()=query_service_json(db,id); }
+        try { resp.body()=query_service_json(db,id,public_mode); }
         catch(const std::exception&) {
           resp.result(http::status::not_found);
           resp.body()="{\"error\":\"SERVICE_NOT_FOUND\"}";

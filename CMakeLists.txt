@@ -15,6 +15,8 @@ add_executable(crivo
   src/sandbox.cpp
   src/inspector.cpp
   src/memory.cpp
+  src/dev_context.cpp
+  src/mcp_server.cpp
   src/registry/json_impl.cpp
   src/registry/validator.cpp
   src/registry/importer.cpp
@@ -227,5 +229,31 @@ add_test(NAME e9_memory_reject_invalid_file COMMAND crivo memory record
   --file ${CMAKE_SOURCE_DIR}/tests/bad-version.json
   --db ${CMAKE_BINARY_DIR}/memory_test.db)
 set_tests_properties(e9_memory_reject_invalid_file PROPERTIES WILL_FAIL TRUE)
+
+# Testes de Aceite E10 — Contrato de Contexto de Desenvolvimento (crivo.dev-context/1.0.0 / CRIVO-DEV-003-ADENDO-001)
+add_test(NAME e10_dev_context_cli COMMAND crivo context
+  --target ${CMAKE_SOURCE_DIR}/catalog
+  --db ${CMAKE_BINARY_DIR}/memory_test.db)
+set_tests_properties(e10_dev_context_cli PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "CRIVO DEV CONTEXT")
+
+add_test(NAME e10_dev_context_json COMMAND crivo context
+  --target ${CMAKE_SOURCE_DIR}/catalog
+  --db ${CMAKE_BINARY_DIR}/memory_test.db
+  --json)
+set_tests_properties(e10_dev_context_json PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "\"schema_version\":\"crivo.dev-context/1.0.0\"")
+
+add_test(NAME e10_dev_context_with_filter COMMAND crivo context
+  --target ${CMAKE_SOURCE_DIR}/catalog
+  --db ${CMAKE_BINARY_DIR}/memory_test.db
+  --tag "capability:sqlite"
+  --json)
+set_tests_properties(e10_dev_context_with_filter PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "exp-trama-sqlite-wal-resilience")
+
 
 

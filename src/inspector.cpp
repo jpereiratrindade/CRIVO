@@ -367,6 +367,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
     // Determine overall status
     if (summary.blocked_tests > 0) summary.overall_status = "BLOCKED";
     else if (summary.failed_tests > 0) summary.overall_status = "FAIL";
+    else if (opts.fail_closed && summary.skipped_tests > 0) summary.overall_status = "BLOCKED";
     else if (summary.passed_tests > 0) summary.overall_status = "PASS";
     else summary.overall_status = "NO_TESTS";
 

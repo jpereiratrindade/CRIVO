@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include "registry/lifecycle.hpp"
 #include "memory.hpp"
+#include "dev_context.hpp"
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -611,6 +612,12 @@ void serve(const std::string& db,const std::string& web_directory,
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         try { resp.body()=crivo::memory::serialize_experiences_json(crivo::memory::query_experiences(db)); }
         catch(...) { resp.body()="[]"; }
+      } else if(path=="/api/v1/dev-context" || path=="/api/v1/context") {
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try {
+          auto ctx = crivo::context::build_dev_context(db, ".");
+          resp.body()=crivo::context::serialize_dev_context_json(ctx);
+        } catch(...) { resp.body()="{}"; }
       } else if(!public_mode && (path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests")) {
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");

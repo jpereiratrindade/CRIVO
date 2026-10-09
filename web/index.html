@@ -68,7 +68,7 @@
           <span>Fontes Internacionais</span>
         </article>
         <article>
-          <strong id="count-ctest">46</strong>
+          <strong id="count-ctest">49</strong>
           <span>Verificações CTest PASS</span>
         </article>
       </section>
@@ -218,23 +218,31 @@
         </div>
       </div>
       <div class="command-block">
-        <h4>1. Verificação sob Demanda em Sandbox Efêmera (CRIVO-DEV-002):</h4>
+        <h4>1. Recuperar Contexto de Desenvolvimento para IDE / Assistentes (CRIVO-DEV-003-ADENDO-001):</h4>
+        <div class="code-box"><code>./crivo.sh context --target /caminho/do/projeto --json</code></div>
+      </div>
+      <div class="command-block">
+        <h4>2. Servidor MCP Local stdio para IDE e Agentes de Programação:</h4>
+        <div class="code-box"><code>./crivo.sh mcp</code></div>
+      </div>
+      <div class="command-block">
+        <h4>3. Verificação sob Demanda em Sandbox Efêmera (CRIVO-DEV-002):</h4>
         <div class="code-box"><code>./crivo.sh check --target /caminho/do/projeto --profile pilot-e1</code></div>
       </div>
       <div class="command-block">
-        <h4>2. Consultar Memória Técnica do Estaleiro (ADR-0010):</h4>
+        <h4>4. Consultar Memória Técnica do Estaleiro (ADR-0010):</h4>
         <div class="code-box"><code>./crivo.sh memory-query --query "sqlite wal" --tag "offline_first"</code></div>
       </div>
       <div class="command-block">
-        <h4>3. Executar tudo em um único comando (Compilação, 46 CTests, Validação e Web):</h4>
+        <h4>5. Executar tudo em um único comando (Compilação, 49 CTests, Validação e Web):</h4>
         <div class="code-box"><code>./crivo.sh</code></div>
       </div>
       <div class="command-block">
-        <h4>4. Resolver Plano de Teste com Política de Falha Fechada:</h4>
+        <h4>6. Resolver Plano de Teste com Política de Falha Fechada:</h4>
         <div class="code-box"><code>./build/crivo plan --profile pilot-e1 --dir catalog --fail-closed</code></div>
       </div>
       <div class="command-block">
-        <h4>5. Consultar Trilha de Auditoria via CLI:</h4>
+        <h4>7. Consultar Trilha de Auditoria via CLI:</h4>
         <div class="code-box"><code>./build/crivo events list --db .run/crivo.db</code></div>
       </div>
     </section>

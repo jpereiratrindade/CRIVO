@@ -1,0 +1,280 @@
+#include "mcp_server.hpp"
+#include "dev_context.hpp"
+#include "memory.hpp"
+#include "inspector.hpp"
+#include <iostream>
+#include <sstream>
+#include <boost/json.hpp>
+#include <sqlite3.h>
+
+namespace crivo::mcp {
+
+static boost::json::object make_tool_def(
+    const std::string& name,
+    const std::string& description,
+    const boost::json::object& properties,
+    const boost::json::array& required = {})
+{
+    boost::json::object schema;
+    schema["type"] = "object";
+    schema["properties"] = properties;
+    if (!required.empty()) {
+        schema["required"] = required;
+    }
+
+    boost::json::object tool;
+    tool["name"] = name;
+    tool["description"] = description;
+    tool["inputSchema"] = std::move(schema);
+    return tool;
+}
+
+static boost::json::array get_tools_list() {
+    boost::json::array tools;
+
+    // 1. dev_context
+    {
+        boost::json::object props;
+        props["target_path"] = boost::json::object{{"type", "string"}, {"description", "Caminho do diretorio do projeto para inspecao."}};
+        props["project_id"] = boost::json::object{{"type", "string"}, {"description", "Identificador do projeto (opcional)."}};
+        props["query"] = boost::json::object{{"type", "string"}, {"description", "Termo de busca contextual."}};
+        props["tag"] = boost::json::object{{"type", "string"}, {"description", "Filtro por tag tecnica (ex: sqlite, wal, acid)."}};
+        tools.push_back(make_tool_def(
+            "dev_context",
+            "Recupera o contexto estruturado de desenvolvimento (capacidades, experiencias relevantes, execucoes recentes) do projeto sem mutacao.",
+            props
+        ));
+    }
+
+    // 2. knowledge_query
+    {
+        boost::json::object props;
+        props["query"] = boost::json::object{{"type", "string"}, {"description", "Termo para busca na memoria tecnica (problema, decisao, tags)."}};
+        props["tag"] = boost::json::object{{"type", "string"}, {"description", "Filtro por tag tecnica de aplicabilidade."}};
+        props["project_id"] = boost::json::object{{"type", "string"}, {"description", "Filtrar por projeto de origem (opcional)."}};
+        tools.push_back(make_tool_def(
+            "knowledge_query",
+            "Consulta a memoria tecnica do Estaleiro Federado para recuperar problemas, decisoes de engenharia, procedimentos e resultados comprovados.",
+            props
+        ));
+    }
+
+    // 3. catalog_list
+    {
+        boost::json::object props;
+        props["category"] = boost::json::object{{"type", "string"}, {"description", "Categoria para filtro (opcional: persistence, structural, lifecycle)."}};
+        tools.push_back(make_tool_def(
+            "catalog_list",
+            "Lista as normas internacionais, tecnicas e especificacoes de teste cadastradas no catalogo do CRIVO.",
+            props
+        ));
+    }
+
+    // 4. evidence_get
+    {
+        boost::json::object props;
+        props["run_id"] = boost::json::object{{"type", "string"}, {"description", "ID da execucao ou evidencia a consultar."}};
+        boost::json::array req;
+        req.push_back(boost::json::value(boost::json::string_view("run_id")));
+        tools.push_back(make_tool_def(
+            "evidence_get",
+            "Consulta o registro individualizado de evidencia, com digest SHA-256 e contagens de testes.",
+            props,
+            req
+        ));
+    }
+
+    return tools;
+}
+
+static boost::json::object handle_tool_call(
+    const std::string& tool_name,
+    const boost::json::object& args,
+    const std::string& db_path)
+{
+    boost::json::object result;
+    boost::json::array content;
+
+    std::string text_out;
+
+    if (tool_name == "dev_context") {
+        std::string target = args.contains("target_path") ? args.at("target_path").as_string().c_str() : ".";
+        std::string proj = args.contains("project_id") ? args.at("project_id").as_string().c_str() : "";
+        std::string q = args.contains("query") ? args.at("query").as_string().c_str() : "";
+        std::string tag = args.contains("tag") ? args.at("tag").as_string().c_str() : "";
+
+        auto rep = crivo::context::build_dev_context(db_path, target, proj, q, tag);
+        text_out = crivo::context::serialize_dev_context_json(rep);
+    } else if (tool_name == "knowledge_query") {
+        std::string q = args.contains("query") ? args.at("query").as_string().c_str() : "";
+        std::string tag = args.contains("tag") ? args.at("tag").as_string().c_str() : "";
+        std::string proj = args.contains("project_id") ? args.at("project_id").as_string().c_str() : "";
+
+        auto exps = crivo::memory::query_experiences(db_path, q, proj, tag);
+        text_out = crivo::memory::serialize_experiences_json(exps);
+    } else if (tool_name == "evidence_get") {
+        std::string run_id = args.contains("run_id") ? args.at("run_id").as_string().c_str() : "";
+        sqlite3* db = nullptr;
+        if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
+            std::string sql = "SELECT r.run_id, r.project_id, r.mode, r.status, r.total, r.passed, r.failed, "
+                              "r.duration_ms, r.started_at, COALESCE(e.artifact_sha256, ''), COALESCE(e.evidence_path, '') "
+                              "FROM external_runs r LEFT JOIN evidence_index e ON e.run_id=r.run_id "
+                              "WHERE r.run_id = ?;";
+            sqlite3_stmt* stmt = nullptr;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, run_id.c_str(), -1, SQLITE_TRANSIENT);
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
+                    boost::json::object obj;
+                    auto gs = [&](int col) -> std::string {
+                        const auto* p = sqlite3_column_text(stmt, col);
+                        return p ? reinterpret_cast<const char*>(p) : "";
+                    };
+                    obj["run_id"] = boost::json::string_view(gs(0));
+                    obj["project_id"] = boost::json::string_view(gs(1));
+                    obj["mode"] = boost::json::string_view(gs(2));
+                    obj["status"] = boost::json::string_view(gs(3));
+                    obj["total"] = sqlite3_column_int64(stmt, 4);
+                    obj["passed"] = sqlite3_column_int64(stmt, 5);
+                    obj["failed"] = sqlite3_column_int64(stmt, 6);
+                    obj["duration_ms"] = sqlite3_column_int64(stmt, 7);
+                    obj["started_at"] = boost::json::string_view(gs(8));
+                    obj["artifact_sha256"] = boost::json::string_view(gs(9));
+                    obj["evidence_path"] = boost::json::string_view(gs(10));
+                    text_out = boost::json::serialize(obj);
+                } else {
+                    text_out = "{\"error\": \"EVIDENCE_NOT_FOUND\", \"run_id\": \"" + run_id + "\"}";
+                }
+                sqlite3_finalize(stmt);
+            }
+            sqlite3_close(db);
+        } else {
+            text_out = "{\"error\": \"DATABASE_ERROR\"}";
+        }
+    } else if (tool_name == "catalog_list") {
+        sqlite3* db = nullptr;
+        if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
+            std::string sql = "SELECT id, name, category, subcategory, purpose, status FROM test_catalog ORDER BY category, id;";
+            sqlite3_stmt* stmt = nullptr;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                boost::json::array arr;
+                while (sqlite3_step(stmt) == SQLITE_ROW) {
+                    boost::json::object s;
+                    auto gs = [&](int col) -> std::string {
+                        const auto* p = sqlite3_column_text(stmt, col);
+                        return p ? reinterpret_cast<const char*>(p) : "";
+                    };
+                    s["id"] = boost::json::string_view(gs(0));
+                    s["name"] = boost::json::string_view(gs(1));
+                    s["category"] = boost::json::string_view(gs(2));
+                    s["subcategory"] = boost::json::string_view(gs(3));
+                    s["purpose"] = boost::json::string_view(gs(4));
+                    s["status"] = boost::json::string_view(gs(5));
+                    arr.push_back(std::move(s));
+                }
+                sqlite3_finalize(stmt);
+                text_out = boost::json::serialize(arr);
+            }
+            sqlite3_close(db);
+        } else {
+            text_out = "[]";
+        }
+    } else {
+        text_out = "{\"error\": \"UNKNOWN_TOOL\", \"name\": \"" + tool_name + "\"}";
+    }
+
+    boost::json::object item;
+    item["type"] = "text";
+    item["text"] = boost::json::string_view(text_out);
+    content.push_back(std::move(item));
+
+    result["content"] = std::move(content);
+    return result;
+}
+
+int run_stdio_server(const std::string& db_path, const std::string& catalog_dir) {
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        if (line.empty()) continue;
+        // Tratar Content-Length header caso presente em certos clientes MCP
+        if (line.starts_with("Content-Length:") || line.starts_with("content-length:")) {
+            continue;
+        }
+
+        boost::json::value req_val;
+        try {
+            req_val = boost::json::parse(line);
+        } catch (...) {
+            continue;
+        }
+
+        if (!req_val.is_object()) continue;
+        const auto& req = req_val.as_object();
+
+        std::string method;
+        if (req.contains("method") && req.at("method").is_string()) {
+            method = req.at("method").as_string().c_str();
+        }
+
+        boost::json::value id_val = nullptr;
+        if (req.contains("id")) {
+            id_val = req.at("id");
+        }
+
+        boost::json::object resp;
+        resp["jsonrpc"] = "2.0";
+        if (!id_val.is_null()) {
+            resp["id"] = id_val;
+        }
+
+        if (method == "initialize") {
+            boost::json::object res;
+            res["protocolVersion"] = "2024-11-05";
+            boost::json::object server_info;
+            server_info["name"] = "crivo-mcp-server";
+            server_info["version"] = "0.3.0";
+            res["serverInfo"] = std::move(server_info);
+
+            boost::json::object caps;
+            caps["tools"] = boost::json::object{};
+            res["capabilities"] = std::move(caps);
+
+            resp["result"] = std::move(res);
+        } else if (method == "notifications/initialized") {
+            // Notificacao, sem resposta necessária se não houver id
+            if (id_val.is_null()) continue;
+            resp["result"] = boost::json::object{};
+        } else if (method == "ping") {
+            resp["result"] = boost::json::object{};
+        } else if (method == "tools/list") {
+            boost::json::object res;
+            res["tools"] = get_tools_list();
+            resp["result"] = std::move(res);
+        } else if (method == "tools/call") {
+            if (req.contains("params") && req.at("params").is_object()) {
+                const auto& params = req.at("params").as_object();
+                std::string t_name = params.contains("name") ? params.at("name").as_string().c_str() : "";
+                boost::json::object t_args;
+                if (params.contains("arguments") && params.at("arguments").is_object()) {
+                    t_args = params.at("arguments").as_object();
+                }
+                resp["result"] = handle_tool_call(t_name, t_args, db_path);
+            } else {
+                boost::json::object err;
+                err["code"] = -32602;
+                err["message"] = "Invalid params";
+                resp["error"] = std::move(err);
+            }
+        } else {
+            boost::json::object err;
+            err["code"] = -32601;
+            err["message"] = "Method not found: " + method;
+            resp["error"] = std::move(err);
+        }
+
+        std::string out_str = boost::json::serialize(resp);
+        std::cout << out_str << "\n" << std::flush;
+    }
+    return 0;
+}
+
+} // namespace crivo::mcp

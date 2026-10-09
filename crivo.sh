@@ -58,6 +58,8 @@ Uso: ./crivo.sh [comando]
   import      Importa catálogo internacional para persistência SQLite
   plan        Gera e exibe o plano de teste resolvido para o perfil
   check       Executa verificação sob demanda em sandbox efêmera (CRIVO-DEV-002)
+  context     Gera projeção de contexto de desenvolvimento crivo.dev-context/1.0.0
+  mcp         Inicia servidor MCP stdio somente leitura para IDE e assistentes
   memory-record <arquivo> Registra experiência técnica na memória federada (ADR-0010)
   memory-query [termo]   Consulta experiências transversais e evidências (ADR-0010)
   init        Inicializa banco local legado
@@ -110,6 +112,16 @@ case "$COMMAND" in
     ensure_binary
     shift || true
     "$BUILD_DIR/crivo" check --db "$DB_FILE" "$@"
+    ;;
+  context)
+    ensure_binary
+    shift || true
+    "$BUILD_DIR/crivo" context --db "$DB_FILE" "$@"
+    ;;
+  mcp)
+    ensure_binary
+    shift || true
+    exec "$BUILD_DIR/crivo" mcp --db "$DB_FILE" "$@"
     ;;
   memory-record)
     ensure_binary

@@ -7,6 +7,8 @@
 #include "inspector.hpp"
 #include "sandbox.hpp"
 #include "memory.hpp"
+#include "dev_context.hpp"
+#include "mcp_server.hpp"
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -30,7 +32,7 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|check|memory|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|check|context|memory|mcp|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
@@ -460,6 +462,34 @@ int main(int argc, char** argv) {
           return 0;
         }
       }
+    }
+    if (command == "context") {
+      auto ctx = crivo::context::build_dev_context(
+          db,
+          target_path,
+          project_id == "local-project" ? "" : project_id,
+          query_term,
+          tag_filter
+      );
+      std::string out = crivo::context::serialize_dev_context_json(ctx);
+      if (json_output) {
+        std::cout << out << "\n";
+      } else {
+        std::cout << "CRIVO DEV CONTEXT [" << ctx.project_id << "]\n"
+                  << "  - Worktree: " << ctx.source_worktree << "\n"
+                  << "  - Capacidades identificadas: " << ctx.discovered_capabilities.size() << "\n";
+        for (const auto& cap : ctx.discovered_capabilities) {
+          std::cout << "    * " << cap << "\n";
+        }
+        std::cout << "  - Experiencias relevantes do Estaleiro: " << ctx.relevant_experiences.size() << "\n";
+        for (const auto& exp : ctx.relevant_experiences) {
+          std::cout << "    * [" << exp.experience_id << "] " << exp.problem << " -> " << exp.choice << "\n";
+        }
+      }
+      return 0;
+    }
+    if (command == "mcp") {
+      return crivo::mcp::run_stdio_server(db, catalog_dir);
     }
     throw std::runtime_error("Comando desconhecido: " + command);
   } catch (const std::exception& e) {

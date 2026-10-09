@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Test Plan Snapshot Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.test-plan/1.0.0"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" },
+        "title": { "type": "string" }
+      },
+      "required": ["id", "version", "title"],
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "supported_capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unsupported_capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["supported_capabilities"],
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "total_selected": { "type": "integer" },
+        "applicable_count": { "type": "integer" },
+        "not_applicable_count": { "type": "integer" },
+        "unknown_count": { "type": "integer" }
+      },
+      "required": ["total_selected", "applicable_count", "not_applicable_count", "unknown_count"],
+      "additionalProperties": false
+    },
+    "planned_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "spec_id": { "type": "string" },
+          "spec_version": { "type": "string" },
+          "implementation_id": { "type": "string" },
+          "implementation_version": { "type": "string" },
+          "adapter": { "type": "string" },
+          "applicability_status": {
+            "type": "string",
+            "enum": ["APPLICABLE", "NOT_APPLICABLE", "UNKNOWN"]
+          },
+          "applicability_reasons": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": [
+          "spec_id",
+          "spec_version",
+          "implementation_id",
+          "implementation_version",
+          "adapter",
+          "applicability_status",
+          "required_capabilities"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_id",
+    "created_at",
+    "profile",
+    "environment",
+    "summary",
+    "planned_tests"
+  ],
+  "additionalProperties": false
+}

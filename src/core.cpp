@@ -62,11 +62,25 @@ std::string json_array(const std::vector<std::string>& a) {
   return out+"]";
 }
 std::string json_row(const TestDefinition& x) {
-  return "{\"id\":\""+json_escape(x.id)+"\",\"name\":\""+json_escape(x.name)+
+  return "{\"schema_version\":\"crivo.service/0.1.0\",\"id\":\""+
+    json_escape(x.id)+"\",\"name\":\""+json_escape(x.name)+
       "\",\"category\":\""+json_escape(x.category)+"\",\"subcategory\":\""+json_escape(x.subcategory)+
       "\",\"purpose\":\""+json_escape(x.purpose)+"\",\"status\":\""+json_escape(x.status)+
       "\",\"engine\":\""+json_escape(x.engine)+"\",\"profiles\":"+json_array(x.profiles)+
       ",\"tags\":"+json_array(x.tags)+"}";
+}
+std::string service_row(const TestDefinition& x) {
+  const bool available=x.status=="implemented";
+  return "{\"id\":\""+json_escape(x.id)+"\",\"name\":\""+json_escape(x.name)+
+    "\",\"category\":\""+json_escape(x.category)+"\",\"subcategory\":\""+
+    json_escape(x.subcategory)+"\",\"purpose\":\""+json_escape(x.purpose)+
+    "\",\"availability\":\""+(available?"IMPLEMENTED":"PLANNED")+
+    "\",\"consumption\":{\"mode\":\""+(available?"CLI_PROFILE":"NOT_AVAILABLE")+
+    "\",\"profiles\":"+json_array(x.profiles)+"},\"output_states\":"+
+    (available?"[\"PASS\",\"FAIL\",\"ERROR\"]":"[\"BLOCKED\"]")+
+    ",\"authority\":\"NOT_DEFINED\",\"evidence\":\""+
+    (available?"LOCAL_SUMMARY":"NONE")+"\","+
+    "\"limitations\":[\"No certification claim\",\"Result valid only for declared local execution context\"]}";
 }
 std::string simple_result(sqlite3* db,const std::string& sql) {
   const auto st=prepare(db,sql);
@@ -156,6 +170,23 @@ std::string serialize_catalog(const std::vector<TestDefinition>& catalog) {
   std::string out="[";
   for(const auto& row : catalog) { if(out.size()>1) out+=','; out+=json_row(row); }
   return out+"]";
+}
+std::string serialize_services(const std::vector<TestDefinition>& catalog) {
+  std::string out="{\"schema_version\":\"crivo.service-catalog/0.1.0\",\"services\":[";
+  bool first=true;
+  for(const auto& row : catalog) {
+    if(!first) out+=',';
+    first=false;
+    out+=service_row(row);
+  }
+  return out+"]}";
+}
+std::string serialize_service(const std::vector<TestDefinition>& catalog,const std::string& id) {
+  const auto found=std::find_if(catalog.begin(),catalog.end(),[&id](const auto& row) {
+    return row.id==id;
+  });
+  if(found==catalog.end()) throw std::runtime_error("Servico desconhecido: "+id);
+  return service_row(*found);
 }
 void initialize_db(const std::string& path) {
   const auto parent=std::filesystem::path(path).parent_path();
@@ -253,6 +284,20 @@ std::string query_json(const std::string& path,const std::string& name) {
     }
     return out+"]";
   }
+  if(name=="services") {
+    const auto st=prepare(db.get(),"SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog ORDER BY category,id;");
+    std::vector<TestDefinition> catalog;
+    while(sqlite3_step(st.get())==SQLITE_ROW) {
+      TestDefinition row{str(st.get(),0),str(st.get(),1),str(st.get(),2),str(st.get(),3),
+        str(st.get(),4),str(st.get(),5),str(st.get(),6),{}, {}};
+      boost::property_tree::ptree profiles;
+      std::istringstream profile_json(str(st.get(),7));
+      boost::property_tree::read_json(profile_json,profiles);
+      row.profiles=as_strings(profiles);
+      catalog.push_back(std::move(row));
+    }
+    return serialize_services(catalog);
+  }
   if(name=="runs") {
     const auto st=prepare(db.get(),"SELECT id,test_id,category,profile,status,detail,duration_ms,created_at FROM runs ORDER BY id DESC LIMIT 100;");
     std::string out="[";
@@ -268,6 +313,21 @@ std::string query_json(const std::string& path,const std::string& name) {
     return out+"]";
   }
   throw std::runtime_error("Consulta nao suportada: "+name);
+}
+std::string query_service_json(const std::string& path,const std::string& id) {
+  if(!std::regex_match(id,std::regex("^[a-z][a-z0-9_.-]{2,100}$")))
+    throw std::runtime_error("ID de servico invalido");
+  auto db=open_db(path,true);
+  auto st=prepare(db.get(),"SELECT id,name,category,subcategory,purpose,status,engine,profiles,tags FROM test_catalog WHERE id=?;");
+  bind_text(st.get(),1,id);
+  if(sqlite3_step(st.get())!=SQLITE_ROW) throw std::runtime_error("Servico desconhecido: "+id);
+  TestDefinition row{str(st.get(),0),str(st.get(),1),str(st.get(),2),str(st.get(),3),
+    str(st.get(),4),str(st.get(),5),str(st.get(),6),{}, {}};
+  boost::property_tree::ptree profiles;
+  std::istringstream profile_json(str(st.get(),7));
+  boost::property_tree::read_json(profile_json,profiles);
+  row.profiles=as_strings(profiles);
+  return service_row(row);
 }
 void serve(const std::string& db,const std::string& web_directory,
            const std::string& bind_address,unsigned short port) {
@@ -303,10 +363,18 @@ void serve(const std::string& db,const std::string& web_directory,
       resp.keep_alive(false);
       if(req.method()!=http::verb::get) {
         resp.result(http::status::method_not_allowed);resp.body()="Metodo nao permitido";
-      } else if(path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests" || path=="/api/v1/runs") {
+      } else if(path=="/api/v1/overview" || path=="/api/v1/categories" || path=="/api/v1/tests" || path=="/api/v1/runs" || path=="/api/v1/services") {
         const auto name=path.substr(std::string("/api/v1/").size());
         resp.set(http::field::content_type,"application/json; charset=utf-8");
         resp.body()=query_json(db,name);
+      } else if(path.starts_with("/api/v1/services/")) {
+        const auto id=path.substr(std::string("/api/v1/services/").size());
+        resp.set(http::field::content_type,"application/json; charset=utf-8");
+        try { resp.body()=query_service_json(db,id); }
+        catch(const std::exception&) {
+          resp.result(http::status::not_found);
+          resp.body()="{\"error\":\"SERVICE_NOT_FOUND\"}";
+        }
       } else if(path=="/" || path=="/index.html" || path=="/app.js" || path=="/styles.css") {
         const std::string file=(path=="/" || path=="/index.html")?"index.html":path.substr(1);
         resp.set(http::field::content_type,mime_for(file));

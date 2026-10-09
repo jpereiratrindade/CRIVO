@@ -24,6 +24,15 @@ O script detecta a ausência do Boost no host e usa automaticamente a Toolbox
 
 Acesso local: `http://127.0.0.1:8765`.
 
+Consultar serviços disponíveis:
+
+```bash
+./build/crivo services list
+./build/crivo services show sqlite.integrity
+```
+
+Contrato público: [`docs/SERVICES.md`](docs/SERVICES.md).
+
 Para consultar pela rede local:
 
 ```bash

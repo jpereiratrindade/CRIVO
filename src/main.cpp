@@ -7,14 +7,27 @@ using namespace std::string_literals;
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|run|runs|serve|selftest> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|serve|selftest> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
+    std::string services_action, service_id;
+    int option_start=2;
+    if(command=="services") {
+      if(argc<3) throw std::runtime_error("Uso: crivo services <list|show ID> [opcoes]");
+      services_action=argv[2];
+      option_start=3;
+      if(services_action=="show") {
+        if(argc<4) throw std::runtime_error("Uso: crivo services show <id> [opcoes]");
+        service_id=argv[3]; option_start=4;
+      } else if(services_action!="list") {
+        throw std::runtime_error("Acao de servicos desconhecida: "+services_action);
+      }
+    }
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
     std::string bind_address = "127.0.0.1";
     unsigned short port = 8765;
-    for (int i=2; i<argc; ++i) {
+    for (int i=option_start; i<argc; ++i) {
       std::string a=argv[i];
       if (a=="--db" && i+1<argc) db=argv[++i];
       else if (a=="--file" && i+1<argc) file=argv[++i];
@@ -36,6 +49,12 @@ int main(int argc, char** argv) {
     }
     if (command=="catalog") {
       std::cout<<crivo::serialize_catalog(crivo::parse_catalog(file))<<"\n"; return 0;
+    }
+    if (command=="services") {
+      const auto catalog=crivo::parse_catalog(file);
+      std::cout<<(services_action=="list"?crivo::serialize_services(catalog):
+        crivo::serialize_service(catalog,service_id))<<"\n";
+      return 0;
     }
     if (command=="run") {
       crivo::initialize_db(db);

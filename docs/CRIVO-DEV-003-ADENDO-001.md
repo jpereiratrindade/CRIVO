@@ -101,4 +101,27 @@ O CRIVO incorpora nativamente um servidor MCP com transporte `stdio` (`./build/c
 3. A pessoa desenvolvedora avalia relevância, limites e autoriza registro.
 4. Registro é indexado no SQLite WAL com genealogia e proveniência mantidas.
 
+## 7. Diretriz Normativa: Independência da Identidade dos Sistemas Participantes
+
+> **Princípio da Universalidade e Imparcialidade Técnica:**
+> 
+> 1. O CRIVO deverá ser capaz de receber, caracterizar e avaliar sistemas computacionais cuja identidade, implementação, linguagem, arquitetura, organização e histórico sejam previamente desconhecidos.
+> 2. Nenhum sistema participante será codificado como dependência estrutural, pré-requisito de inicialização ou condição obrigatória para seleção e execução de verificações.
+> 3. A identificação do alvo ocorrerá dinamicamente, mediante descoberta de características observáveis, metadados disponíveis e declarações autorizadas, gerando identidades provisórias (`provisional:target-<fingerprint>`) quando não houver projeto formalmente registrado.
+> 4. As técnicas e os critérios de verificação serão selecionados conforme aplicabilidade, risco, finalidade e política, independentemente da identidade nominal do sistema.
+> 5. Experiências anteriores poderão orientar a investigação, mas não constituirão pressupostos sobre o comportamento do novo alvo; a ausência de experiências pertinentes retornará explicitamente `NO_RELEVANT_EXPERIENCES` sem expor a memória técnica global.
+> 6. A ausência de identidade, capacidade ou evidência suficiente deverá ser explicitamente representada, sem substituição por pressupostos ou resultados aprovados.
+
+## 8. Gate E11 — Validação da Independência do Sistema-Alvo
+
+O Gate E11 estabelece 12 verificações automatizadas com fixtures sintéticas e alvos não registrados:
+- **E11-01 a E11-04:** Descoberta polivalente de capacidades (JSON, C/C++, Python CLI, HTTP).
+- **E11-05:** Consistência técnica entre worktrees distintos do mesmo sistema.
+- **E11-06:** Identidade provisória sem fallback hardcoded.
+- **E11-07:** Isolamento contextual de experiências da memória técnica.
+- **E11-08:** Bloqueio estrito de perfis inexistentes (`BLOCKED`).
+- **E11-09:** Reprovação fidedigna de oráculos inválidos (`FAIL`).
+- **E11-10 a E11-11:** Robustez JSON-RPC no MCP e contenção de escopo / path traversal.
+- **E11-12:** Bloqueio mandatório quando sandboxes exigidas estiverem indisponíveis.
+
 **Sempre pronto. Sempre incompleto.**

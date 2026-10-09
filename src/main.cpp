@@ -459,6 +459,9 @@ int main(int argc, char** argv) {
             crivo::record_external_run(record_db, record);
           }
           std::cout << res.evidence_json_content << "\n";
+          if (res.failed > 0) {
+            return 2;
+          }
           return 0;
         }
       }

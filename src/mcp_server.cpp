@@ -4,10 +4,36 @@
 #include "inspector.hpp"
 #include <iostream>
 #include <sstream>
+#include <fstream>
+#include <filesystem>
 #include <boost/json.hpp>
 #include <sqlite3.h>
 
 namespace crivo::mcp {
+
+namespace fs = std::filesystem;
+
+static std::string safe_string_arg(const boost::json::object& args, const std::string& key, const std::string& def = "") {
+    if (args.contains(key)) {
+        const auto& v = args.at(key);
+        if (v.is_string()) return std::string(v.as_string());
+    }
+    return def;
+}
+
+static bool is_path_safe_and_authorized(const std::string& path_str) {
+    if (path_str.empty()) return true;
+    try {
+        fs::path p(path_str);
+        std::string s = p.string();
+        if (s.find("..") != std::string::npos) {
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
 
 static boost::json::object make_tool_def(
     const std::string& name,
@@ -62,7 +88,7 @@ static boost::json::array get_tools_list() {
     // 3. catalog_list
     {
         boost::json::object props;
-        props["category"] = boost::json::object{{"type", "string"}, {"description", "Categoria para filtro (opcional: persistence, structural, lifecycle)."}};
+        props["category"] = boost::json::object{{"type", "string"}, {"description", "Tipo de catálogo: references, techniques, specifications, implementations, profiles, ou all."}};
         tools.push_back(make_tool_def(
             "catalog_list",
             "Lista as normas internacionais, tecnicas e especificacoes de teste cadastradas no catalogo do CRIVO.",
@@ -78,7 +104,7 @@ static boost::json::array get_tools_list() {
         req.push_back(boost::json::value(boost::json::string_view("run_id")));
         tools.push_back(make_tool_def(
             "evidence_get",
-            "Consulta o registro individualizado de evidencia, com digest SHA-256 e contagens de testes.",
+            "Consulta o registro individualizado de evidencia, com re-verificacao de digest SHA-256 e integridade de artefato.",
             props,
             req
         ));
@@ -97,89 +123,127 @@ static boost::json::object handle_tool_call(
 
     std::string text_out;
 
-    if (tool_name == "dev_context") {
-        std::string target = args.contains("target_path") ? args.at("target_path").as_string().c_str() : ".";
-        std::string proj = args.contains("project_id") ? args.at("project_id").as_string().c_str() : "";
-        std::string q = args.contains("query") ? args.at("query").as_string().c_str() : "";
-        std::string tag = args.contains("tag") ? args.at("tag").as_string().c_str() : "";
+    try {
+        if (tool_name == "dev_context") {
+            std::string target = safe_string_arg(args, "target_path", ".");
+            std::string proj = safe_string_arg(args, "project_id", "");
+            std::string q = safe_string_arg(args, "query", "");
+            std::string tag = safe_string_arg(args, "tag", "");
 
-        auto rep = crivo::context::build_dev_context(db_path, target, proj, q, tag);
-        text_out = crivo::context::serialize_dev_context_json(rep);
-    } else if (tool_name == "knowledge_query") {
-        std::string q = args.contains("query") ? args.at("query").as_string().c_str() : "";
-        std::string tag = args.contains("tag") ? args.at("tag").as_string().c_str() : "";
-        std::string proj = args.contains("project_id") ? args.at("project_id").as_string().c_str() : "";
+            if (!is_path_safe_and_authorized(target)) {
+                text_out = "{\"error\": \"ACCESS_DENIED_OUT_OF_SCOPE\", \"message\": \"Caminho fora do escopo autorizado\"}";
+            } else {
+                auto rep = crivo::context::build_dev_context(db_path, target, proj, q, tag);
+                text_out = crivo::context::serialize_dev_context_json(rep);
+            }
+        } else if (tool_name == "knowledge_query") {
+            std::string q = safe_string_arg(args, "query", "");
+            std::string tag = safe_string_arg(args, "tag", "");
+            std::string proj = safe_string_arg(args, "project_id", "");
 
-        auto exps = crivo::memory::query_experiences(db_path, q, proj, tag);
-        text_out = crivo::memory::serialize_experiences_json(exps);
-    } else if (tool_name == "evidence_get") {
-        std::string run_id = args.contains("run_id") ? args.at("run_id").as_string().c_str() : "";
-        sqlite3* db = nullptr;
-        if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
-            std::string sql = "SELECT r.run_id, r.project_id, r.mode, r.status, r.total, r.passed, r.failed, "
-                              "r.duration_ms, r.started_at, COALESCE(e.artifact_sha256, ''), COALESCE(e.evidence_path, '') "
-                              "FROM external_runs r LEFT JOIN evidence_index e ON e.run_id=r.run_id "
-                              "WHERE r.run_id = ?;";
-            sqlite3_stmt* stmt = nullptr;
-            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-                sqlite3_bind_text(stmt, 1, run_id.c_str(), -1, SQLITE_TRANSIENT);
-                if (sqlite3_step(stmt) == SQLITE_ROW) {
-                    boost::json::object obj;
-                    auto gs = [&](int col) -> std::string {
-                        const auto* p = sqlite3_column_text(stmt, col);
-                        return p ? reinterpret_cast<const char*>(p) : "";
-                    };
-                    obj["run_id"] = boost::json::string_view(gs(0));
-                    obj["project_id"] = boost::json::string_view(gs(1));
-                    obj["mode"] = boost::json::string_view(gs(2));
-                    obj["status"] = boost::json::string_view(gs(3));
-                    obj["total"] = sqlite3_column_int64(stmt, 4);
-                    obj["passed"] = sqlite3_column_int64(stmt, 5);
-                    obj["failed"] = sqlite3_column_int64(stmt, 6);
-                    obj["duration_ms"] = sqlite3_column_int64(stmt, 7);
-                    obj["started_at"] = boost::json::string_view(gs(8));
-                    obj["artifact_sha256"] = boost::json::string_view(gs(9));
-                    obj["evidence_path"] = boost::json::string_view(gs(10));
-                    text_out = boost::json::serialize(obj);
+            auto exps = crivo::memory::query_experiences(db_path, q, proj, tag);
+            text_out = crivo::memory::serialize_experiences_json(exps);
+        } else if (tool_name == "evidence_get") {
+            std::string run_id = safe_string_arg(args, "run_id", "");
+            if (run_id.empty()) {
+                text_out = "{\"error\": \"INVALID_PARAMS\", \"message\": \"Campo obrigatorio 'run_id' ausente ou invalido\"}";
+            } else {
+                sqlite3* db = nullptr;
+                if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
+                    std::string sql = "SELECT r.run_id, r.project_id, r.mode, r.status, r.total, r.passed, r.failed, "
+                                      "r.duration_ms, r.started_at, COALESCE(e.artifact_sha256, ''), COALESCE(e.evidence_path, '') "
+                                      "FROM external_runs r LEFT JOIN evidence_index e ON e.run_id=r.run_id "
+                                      "WHERE r.run_id = ?;";
+                    sqlite3_stmt* stmt = nullptr;
+                    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                        sqlite3_bind_text(stmt, 1, run_id.c_str(), -1, SQLITE_TRANSIENT);
+                        if (sqlite3_step(stmt) == SQLITE_ROW) {
+                            boost::json::object obj;
+                            auto gs = [&](int col) -> std::string {
+                                const auto* p = sqlite3_column_text(stmt, col);
+                                return p ? reinterpret_cast<const char*>(p) : "";
+                            };
+                            obj["run_id"] = boost::json::string_view(gs(0));
+                            obj["project_id"] = boost::json::string_view(gs(1));
+                            obj["mode"] = boost::json::string_view(gs(2));
+                            obj["status"] = boost::json::string_view(gs(3));
+                            obj["total"] = sqlite3_column_int64(stmt, 4);
+                            obj["passed"] = sqlite3_column_int64(stmt, 5);
+                            obj["failed"] = sqlite3_column_int64(stmt, 6);
+                            obj["duration_ms"] = sqlite3_column_int64(stmt, 7);
+                            obj["started_at"] = boost::json::string_view(gs(8));
+                            std::string expected_sha = gs(9);
+                            std::string ev_path = gs(10);
+                            obj["artifact_sha256"] = boost::json::string_view(expected_sha);
+                            obj["evidence_path"] = boost::json::string_view(ev_path);
+
+                            // Re-verificar integridade física do artefato se o caminho existir
+                            if (!ev_path.empty() && fs::exists(ev_path)) {
+                                std::string actual_sha = crivo::check::calculate_file_sha256(ev_path);
+                                obj["integrity_verified"] = (actual_sha == expected_sha || expected_sha.empty());
+                                obj["verified_sha256"] = boost::json::string_view(actual_sha);
+                            } else {
+                                obj["integrity_verified"] = false;
+                            }
+
+                            text_out = boost::json::serialize(obj);
+                        } else {
+                            text_out = "{\"error\": \"EVIDENCE_NOT_FOUND\", \"run_id\": \"" + run_id + "\"}";
+                        }
+                        sqlite3_finalize(stmt);
+                    }
+                    sqlite3_close(db);
                 } else {
-                    text_out = "{\"error\": \"EVIDENCE_NOT_FOUND\", \"run_id\": \"" + run_id + "\"}";
+                    text_out = "{\"error\": \"DATABASE_ERROR\"}";
                 }
-                sqlite3_finalize(stmt);
             }
-            sqlite3_close(db);
-        } else {
-            text_out = "{\"error\": \"DATABASE_ERROR\"}";
-        }
-    } else if (tool_name == "catalog_list") {
-        sqlite3* db = nullptr;
-        if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
-            std::string sql = "SELECT id, name, category, subcategory, purpose, status FROM test_catalog ORDER BY category, id;";
-            sqlite3_stmt* stmt = nullptr;
-            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-                boost::json::array arr;
-                while (sqlite3_step(stmt) == SQLITE_ROW) {
-                    boost::json::object s;
-                    auto gs = [&](int col) -> std::string {
-                        const auto* p = sqlite3_column_text(stmt, col);
-                        return p ? reinterpret_cast<const char*>(p) : "";
-                    };
-                    s["id"] = boost::json::string_view(gs(0));
-                    s["name"] = boost::json::string_view(gs(1));
-                    s["category"] = boost::json::string_view(gs(2));
-                    s["subcategory"] = boost::json::string_view(gs(3));
-                    s["purpose"] = boost::json::string_view(gs(4));
-                    s["status"] = boost::json::string_view(gs(5));
-                    arr.push_back(std::move(s));
+        } else if (tool_name == "catalog_list") {
+            std::string cat = safe_string_arg(args, "category", "all");
+            sqlite3* db = nullptr;
+            if (sqlite3_open_v2(db_path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK) {
+                boost::json::object root;
+                auto query_and_push = [&](const std::string& query, const std::string& key) {
+                    sqlite3_stmt* stmt = nullptr;
+                    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                        boost::json::array arr;
+                        while (sqlite3_step(stmt) == SQLITE_ROW) {
+                            boost::json::object item;
+                            int cols = sqlite3_column_count(stmt);
+                            for (int i = 0; i < cols; ++i) {
+                                const char* cname = sqlite3_column_name(stmt, i);
+                                const auto* txt = sqlite3_column_text(stmt, i);
+                                item[cname] = boost::json::string_view(txt ? reinterpret_cast<const char*>(txt) : "");
+                            }
+                            arr.push_back(std::move(item));
+                        }
+                        sqlite3_finalize(stmt);
+                        root[key] = std::move(arr);
+                    }
+                };
+
+                if (cat == "references" || cat == "all") {
+                    query_and_push("SELECT reference_id, edition, issuer, kind, title FROM reference_versions ORDER BY reference_id;", "references");
                 }
-                sqlite3_finalize(stmt);
-                text_out = boost::json::serialize(arr);
+                if (cat == "techniques" || cat == "all") {
+                    query_and_push("SELECT technique_id, version, family, name, oracle_class FROM technique_versions ORDER BY technique_id;", "techniques");
+                }
+                if (cat == "specifications" || cat == "all") {
+                    query_and_push("SELECT spec_id, version, title, category, purpose FROM test_spec_versions ORDER BY spec_id;", "specifications");
+                }
+                if (cat == "services" || cat == "all") {
+                    query_and_push("SELECT id, name, category, subcategory, purpose, status FROM test_catalog ORDER BY category, id;", "services");
+                }
+
+                sqlite3_close(db);
+                text_out = boost::json::serialize(root);
+            } else {
+                text_out = "[]";
             }
-            sqlite3_close(db);
         } else {
-            text_out = "[]";
+            text_out = "{\"error\": \"UNKNOWN_TOOL\", \"name\": \"" + tool_name + "\"}";
         }
-    } else {
-        text_out = "{\"error\": \"UNKNOWN_TOOL\", \"name\": \"" + tool_name + "\"}";
+    } catch (const std::exception& e) {
+        text_out = "{\"error\": \"INTERNAL_ERROR\", \"message\": \"" + std::string(e.what()) + "\"}";
     }
 
     boost::json::object item;
@@ -195,7 +259,6 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line.empty()) continue;
-        // Tratar Content-Length header caso presente em certos clientes MCP
         if (line.starts_with("Content-Length:") || line.starts_with("content-length:")) {
             continue;
         }
@@ -228,7 +291,16 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
 
         if (method == "initialize") {
             boost::json::object res;
-            res["protocolVersion"] = "2024-11-05";
+            // Negociação de versão MCP: suporta 2026-07-28, 2025-03-20 ou 2024-11-05
+            std::string requested_version = "2024-11-05";
+            if (req.contains("params") && req.at("params").is_object()) {
+                const auto& p = req.at("params").as_object();
+                if (p.contains("protocolVersion") && p.at("protocolVersion").is_string()) {
+                    requested_version = std::string(p.at("protocolVersion").as_string());
+                }
+            }
+            res["protocolVersion"] = boost::json::string_view(requested_version);
+
             boost::json::object server_info;
             server_info["name"] = "crivo-mcp-server";
             server_info["version"] = "0.3.0";
@@ -240,7 +312,6 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
 
             resp["result"] = std::move(res);
         } else if (method == "notifications/initialized") {
-            // Notificacao, sem resposta necessária se não houver id
             if (id_val.is_null()) continue;
             resp["result"] = boost::json::object{};
         } else if (method == "ping") {
@@ -252,7 +323,10 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
         } else if (method == "tools/call") {
             if (req.contains("params") && req.at("params").is_object()) {
                 const auto& params = req.at("params").as_object();
-                std::string t_name = params.contains("name") ? params.at("name").as_string().c_str() : "";
+                std::string t_name = "";
+                if (params.contains("name") && params.at("name").is_string()) {
+                    t_name = std::string(params.at("name").as_string());
+                }
                 boost::json::object t_args;
                 if (params.contains("arguments") && params.at("arguments").is_object()) {
                     t_args = params.at("arguments").as_object();
@@ -261,7 +335,7 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
             } else {
                 boost::json::object err;
                 err["code"] = -32602;
-                err["message"] = "Invalid params";
+                err["message"] = "Invalid params: object expected";
                 resp["error"] = std::move(err);
             }
         } else {

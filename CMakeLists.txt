@@ -255,5 +255,83 @@ set_tests_properties(e10_dev_context_with_filter PROPERTIES
   DEPENDS e9_memory_record_experience
   PASS_REGULAR_EXPRESSION "exp-trama-sqlite-wal-resilience")
 
+# ============================================================================
+# Gate E11 — Independência do Sistema-Alvo e Universalidade (CRIVO-DEV-003)
+# ============================================================================
 
+set(E11_DIR ${CMAKE_BINARY_DIR}/e11_fixtures)
+file(MAKE_DIRECTORY ${E11_DIR}/unknown_json_only)
+file(MAKE_DIRECTORY ${E11_DIR}/cpp_no_cmake)
+file(MAKE_DIRECTORY ${E11_DIR}/python_cli)
+file(MAKE_DIRECTORY ${E11_DIR}/http_app)
+file(MAKE_DIRECTORY ${E11_DIR}/worktree_a)
+file(MAKE_DIRECTORY ${E11_DIR}/worktree_b)
+file(MAKE_DIRECTORY ${E11_DIR}/bad_oracle_target)
 
+file(WRITE ${E11_DIR}/unknown_json_only/data.json "{\"sample\": 123}")
+file(WRITE ${E11_DIR}/cpp_no_cmake/main.cpp "int main() { return 0; }")
+file(WRITE ${E11_DIR}/cpp_no_cmake/Makefile "all:\n\t@echo ok")
+file(WRITE ${E11_DIR}/python_cli/cli.py "#!/usr/bin/env python3\nprint('hello')")
+file(WRITE ${E11_DIR}/python_cli/pyproject.toml "[project]\nname = 'synthetic-tool'")
+file(WRITE ${E11_DIR}/http_app/index.html "<!DOCTYPE html><html><body>Test</body></html>")
+file(WRITE ${E11_DIR}/http_app/server.py "import http.server")
+file(WRITE ${E11_DIR}/worktree_a/data.json "{\"id\": \"same_content\"}")
+file(WRITE ${E11_DIR}/worktree_b/data.json "{\"id\": \"same_content\"}")
+file(WRITE ${E11_DIR}/bad_oracle_target/invalid_schema.json "{\"schema_version\": \"bad.version/9.9.9\", \"id\": 12345}")
+
+# E11-01: Diretório desconhecido com arquivos JSON (descoberta genérica de capacidades)
+add_test(NAME e11_01_unknown_json COMMAND crivo context --target ${E11_DIR}/unknown_json_only --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_01_unknown_json PROPERTIES
+  PASS_REGULAR_EXPRESSION "capability:json_parser")
+
+# E11-02: Aplicação C++ sem CMake (descoberta de capability:c_cpp sem exigir CMake)
+add_test(NAME e11_02_cpp_no_cmake COMMAND crivo context --target ${E11_DIR}/cpp_no_cmake --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_02_cpp_no_cmake PROPERTIES
+  PASS_REGULAR_EXPRESSION "capability:c_cpp")
+
+# E11-03: Aplicação Python com CLI (descoberta de capability:python e capability:cli)
+add_test(NAME e11_03_python_cli COMMAND crivo context --target ${E11_DIR}/python_cli --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_03_python_cli PROPERTIES
+  PASS_REGULAR_EXPRESSION "capability:python")
+
+# E11-04: Serviço HTTP de teste (descoberta de capability:http_server)
+add_test(NAME e11_04_http_service COMMAND crivo context --target ${E11_DIR}/http_app --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_04_http_service PROPERTIES
+  PASS_REGULAR_EXPRESSION "capability:http_server")
+
+# E11-05: Mesmo sistema com nome de diretório diferente produz mesmas capacidades
+add_test(NAME e11_05_worktree_consistency COMMAND crivo context --target ${E11_DIR}/worktree_b --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_05_worktree_consistency PROPERTIES
+  PASS_REGULAR_EXPRESSION "capability:json_parser")
+
+# E11-06: Projeto não registrado recebe identidade provisória (jamais fallback 'CRIVO')
+add_test(NAME e11_06_provisional_identity COMMAND crivo context --target ${E11_DIR}/unknown_json_only --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_06_provisional_identity PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"identification_status\":\"provisional\"")
+
+# E11-07: Ausência de experiências pertinentes retorna NO_RELEVANT_EXPERIENCES sem expor memória alheia
+add_test(NAME e11_07_no_relevant_experiences COMMAND crivo context --target ${E11_DIR}/python_cli --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
+set_tests_properties(e11_07_no_relevant_experiences PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"memory_status\":\"NO_RELEVANT_EXPERIENCES\"")
+
+# E11-08: Perfil inexistente no check resulta em BLOCKED sem substituição silenciosa
+add_test(NAME e11_08_nonexistent_profile_blocked COMMAND crivo check --target ${CMAKE_SOURCE_DIR}/catalog --profile perfil_inexistente_xyz --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_nonexistent --db ${CMAKE_BINARY_DIR}/check_test.db)
+set_tests_properties(e11_08_nonexistent_profile_blocked PROPERTIES WILL_FAIL TRUE)
+
+# E11-09: Oráculo deliberadamente reprovado resulta em FAIL (jamais PASS)
+add_test(NAME e11_09_bad_oracle_fails COMMAND crivo check --target ${E11_DIR}/bad_oracle_target --profile pilot-e1 --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_bad_oracle --db ${CMAKE_BINARY_DIR}/check_test.db)
+set_tests_properties(e11_09_bad_oracle_fails PROPERTIES WILL_FAIL TRUE)
+
+# E11-10: Cliente MCP com argumentos inválidos retorna erro estruturado sem crash
+add_test(NAME e11_10_mcp_invalid_args COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"dev_context\",\"arguments\":12345}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
+set_tests_properties(e11_10_mcp_invalid_args PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"jsonrpc\":\"2.0\"")
+
+# E11-11: Path Traversal fora do escopo no MCP é rejeitado (ACCESS_DENIED_OUT_OF_SCOPE)
+add_test(NAME e11_11_mcp_scope_denied COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"dev_context\",\"arguments\":{\"target_path\":\"../../../../etc/passwd\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
+set_tests_properties(e11_11_mcp_scope_denied PROPERTIES
+  PASS_REGULAR_EXPRESSION "ACCESS_DENIED_OUT_OF_SCOPE")
+
+# E11-12: Sandbox indisponível quando exigida resulta em BLOCKED
+add_test(NAME e11_12_sandbox_unavailable_blocked COMMAND crivo check --target ${CMAKE_SOURCE_DIR}/catalog --profile pilot-e1 --backend podman --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_no_sbx --db ${CMAKE_BINARY_DIR}/check_test.db)
+set_tests_properties(e11_12_sandbox_unavailable_blocked PROPERTIES WILL_FAIL TRUE)

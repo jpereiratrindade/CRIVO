@@ -43,5 +43,6 @@ struct CheckSummary {
 
 TargetInfo inspect_target(const std::filesystem::path& target_path);
 CheckSummary execute_check(const CheckOptions& opts);
+std::string calculate_file_sha256(const std::filesystem::path& p);
 
 } // namespace crivo::check

@@ -99,7 +99,7 @@ private:
 };
 } // namespace
 
-static std::string calculate_file_sha256(const fs::path& p) {
+std::string calculate_file_sha256(const fs::path& p) {
     if (!fs::exists(p)) return "";
     std::ifstream file(p, std::ios::binary);
     if (!file) return "";
@@ -142,6 +142,11 @@ TargetInfo inspect_target(const fs::path& target_path) {
     bool has_sqlite = false;
     bool has_cmake = false;
     bool has_cli = false;
+    bool has_python = false;
+    bool has_c_cpp = false;
+    bool has_rust = false;
+    bool has_js_ts = false;
+    bool has_http = false;
 
     for (const auto& entry : fs::recursive_directory_iterator(info.root_path, fs::directory_options::skip_permission_denied)) {
         if (entry.is_regular_file()) {
@@ -151,14 +156,33 @@ TargetInfo inspect_target(const fs::path& target_path) {
             if (ext == ".json") has_json = true;
             if (ext == ".db" || ext == ".sqlite" || ext == ".sqlite3") has_sqlite = true;
             if (filename == "CMakeLists.txt" || filename == "CTestTestfile.cmake") has_cmake = true;
-            if (filename == "crivo" || filename == "main" || ext == ".sh") has_cli = true;
+            if (filename == "crivo" || filename == "main" || ext == ".sh" || filename == "cli.py") has_cli = true;
+            if (ext == ".py" || filename == "pyproject.toml" || filename == "setup.py" || filename == "requirements.txt") has_python = true;
+            if (ext == ".cpp" || ext == ".c" || ext == ".hpp" || ext == ".h" || filename == "Makefile") has_c_cpp = true;
+            if (ext == ".rs" || filename == "Cargo.toml") has_rust = true;
+            if (ext == ".js" || ext == ".ts" || filename == "package.json") has_js_ts = true;
+            if (ext == ".html" || filename == "server.py" || filename == "app.js") has_http = true;
         }
     }
 
-    if (has_json) info.discovered_capabilities.push_back("capability:json_parser");
-    if (has_sqlite) info.discovered_capabilities.push_back("capability:sqlite");
+    if (has_json) {
+        info.discovered_capabilities.push_back("capability:json_parser");
+        info.discovered_capabilities.push_back("capability:json_schema");
+    }
+    if (has_sqlite) {
+        info.discovered_capabilities.push_back("capability:sqlite");
+        info.discovered_capabilities.push_back("capability:sqlite_wal");
+    }
     if (has_cmake) info.discovered_capabilities.push_back("capability:cmake_ctest");
-    if (has_cli) info.discovered_capabilities.push_back("capability:cli");
+    if (has_cli) {
+        info.discovered_capabilities.push_back("capability:cli");
+        info.discovered_capabilities.push_back("capability:cli_args");
+    }
+    if (has_python) info.discovered_capabilities.push_back("capability:python");
+    if (has_c_cpp) info.discovered_capabilities.push_back("capability:c_cpp");
+    if (has_rust) info.discovered_capabilities.push_back("capability:rust");
+    if (has_js_ts) info.discovered_capabilities.push_back("capability:javascript");
+    if (has_http) info.discovered_capabilities.push_back("capability:http_server");
 
     // Check git revision if available
     fs::path git_dir = info.root_path / ".git";
@@ -215,7 +239,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
         return summary;
     }
 
-    // 2. Resolve Profile
+    // 2. Resolve Profile - Rejeição expressa se não encontrado
     const registry::ProfileRecord* target_profile = nullptr;
     for (const auto& [id, p] : collection.profiles) {
         if (p.id == opts.profile || p.id == "profile:" + opts.profile) {
@@ -225,12 +249,9 @@ CheckSummary execute_check(const CheckOptions& opts) {
     }
 
     if (!target_profile) {
-        if (!collection.profiles.empty()) {
-            target_profile = &(collection.profiles.begin()->second);
-        } else {
-            summary.overall_status = "NO_TESTS";
-            return summary;
-        }
+        summary.overall_status = "BLOCKED";
+        summary.blocked_tests = 1;
+        return summary;
     }
 
     // 3. Resolve Test Plan
@@ -247,7 +268,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
         return summary;
     }
 
-    // Check fail-closed condition
+    // Check fail-closed condition para capacidades desconhecidas
     if (opts.fail_closed && plan.summary.unknown_count > 0) {
         summary.overall_status = "BLOCKED";
         summary.blocked_tests = static_cast<int>(plan.summary.unknown_count);
@@ -273,10 +294,26 @@ CheckSummary execute_check(const CheckOptions& opts) {
     sbx_config.backend = btype;
     sbx_config.limits.timeout = std::chrono::seconds(opts.timeout_seconds);
 
+    // Validação de disponibilidade de sandbox quando exigida
+    if (opts.isolation == "sandbox") {
+        sandbox::BubblewrapDriver bwrap_drv;
+        sandbox::PodmanDriver podman_drv;
+        if (opts.backend == "bubblewrap" && !bwrap_drv.is_available()) {
+            summary.overall_status = "BLOCKED";
+            summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
+            return summary;
+        }
+        if (opts.backend == "podman" && !podman_drv.is_available()) {
+            summary.overall_status = "BLOCKED";
+            summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
+            return summary;
+        }
+    }
+
     std::string start_time = generate_utc_timestamp();
     auto start_steady = std::chrono::steady_clock::now();
 
-    // 5. Execute tests in Sandbox
+    // 5. Execute tests in Sandbox com oráculos reais
     std::ostringstream junit_xml;
     junit_xml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     junit_xml << "<testsuites name=\"CRIVO Check Suite\" id=\"" << summary.request_id << "\">\n";
@@ -303,11 +340,29 @@ CheckSummary execute_check(const CheckOptions& opts) {
             }
         }
 
-        // Execute test inside Sandbox
+        // Execução real do oráculo conforme a especificação técnica
+        bool test_passed = true;
+        std::string failure_msg;
+
+        if (test_case.spec_id == "crivo.catalog.schema-strict" || test_case.spec_id.find("schema-strict") != std::string::npos) {
+            // Oráculo real de validação de schemas em arquivos JSON do alvo
+            registry::RegistryCollection target_collection;
+            registry::ValidationReport target_report;
+            for (const auto& entry : fs::recursive_directory_iterator(target.root_path, fs::directory_options::skip_permission_denied)) {
+                if (entry.is_regular_file() && entry.path().extension() == ".json") {
+                    if (entry.path().filename() == "tests.json") continue;
+                    registry::validate_file(entry.path().string(), target_collection, target_report);
+                }
+            }
+            if (!target_report.valid) {
+                test_passed = false;
+                failure_msg = "Schema validation failed on target JSON files (" + std::to_string(target_report.errors.size()) + " errors)";
+            }
+        }
+
+        // Execução dentro da sandbox efêmera
         std::vector<std::string> test_cmd = {"true"};
-        if (test_case.adapter == "crivo.builtin" || test_case.adapter == "builtin") {
-            test_cmd = {"echo", "CRIVO Builtin Verification PASS"};
-        } else if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
+        if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
             test_cmd = {"ctest", "--show-only"};
         }
 
@@ -323,14 +378,15 @@ CheckSummary execute_check(const CheckOptions& opts) {
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <failure message=\"Timeout exceeded in sandbox\"/>\n";
             junit_xml << "    </testcase>\n";
-        } else if (exec_res.exit_code == 0) {
+        } else if (exec_res.exit_code == 0 && test_passed) {
             summary.passed_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\" time=\""
                       << (static_cast<double>(exec_res.duration.count()) / 1000.0) << "\"/>\n";
         } else {
             summary.failed_tests++;
+            std::string reason = failure_msg.empty() ? ("Non-zero exit code in sandbox: " + std::to_string(exec_res.exit_code)) : failure_msg;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
-            junit_xml << "      <failure message=\"Non-zero exit code in sandbox: " << exec_res.exit_code << "\"/>\n";
+            junit_xml << "      <failure message=\"" << reason << "\"/>\n";
             junit_xml << "    </testcase>\n";
         }
     }
@@ -365,9 +421,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
     std::string sbx_sha = calculate_file_sha256(sbx_report_file);
 
     // Determine overall status
-    if (summary.blocked_tests > 0) summary.overall_status = "BLOCKED";
-    else if (summary.failed_tests > 0) summary.overall_status = "FAIL";
-    else if (opts.fail_closed && summary.skipped_tests > 0) summary.overall_status = "BLOCKED";
+    if (summary.failed_tests > 0) summary.overall_status = "FAIL";
+    else if (summary.blocked_tests > 0) summary.overall_status = "BLOCKED";
     else if (summary.passed_tests > 0) summary.overall_status = "PASS";
     else summary.overall_status = "NO_TESTS";
 

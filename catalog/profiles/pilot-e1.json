@@ -1,0 +1,33 @@
+{
+  "schema_version": "crivo.profile/1.0.0",
+  "id": "pilot-e1",
+  "version": "1.0.0",
+  "title": "CRIVO E1 Pilot Verification Profile",
+  "description": "Perfil piloto para validação estrita de integridade de registros, persistência e contratos HTTP.",
+  "selection": {
+    "categories": [
+      "persistence",
+      "validation",
+      "interface"
+    ],
+    "levels": [
+      "unit",
+      "component",
+      "integration"
+    ],
+    "purposes": [
+      "regression",
+      "security"
+    ],
+    "include_specs": [
+      "crivo.sqlite.transaction.rollback@0.1.0",
+      "crivo.catalog.schema-strict@0.1.0",
+      "crivo.http.contract-readonly@0.1.0"
+    ],
+    "exclude_specs": []
+  },
+  "policy": {
+    "fail_fast": false,
+    "allow_unqualified": true
+  }
+}

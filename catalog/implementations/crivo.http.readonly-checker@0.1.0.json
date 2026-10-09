@@ -1,0 +1,19 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.http.readonly-checker",
+  "version": "0.1.0",
+  "implements": "crivo.http.contract-readonly@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "boost_beast",
+    "boost_asio"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "ephemeral",
+    "network": "loopback_only"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_http_readonly_checker",
+  "notes": "Executa requisições GET e POST em servidor local efêmero."
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "boundary-value-analysis",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Boundary Value Analysis (BVA)",
+  "procedure_summary": "Testa valores nos limites extremos das partições de equivalência (mínimo, mínimo+1, nominal, máximo-1, máximo e imediatamente fora dos limites).",
+  "input_partitioning": "Limites inferiores, valores internos válidos e limites superiores para tamanhos, contagens e intervalos numéricos.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:json_schema",
+    "capability:cli_args",
+    "capability:protocol_buffer"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "derived_from",
+      "interpretation_limit": "Aplicação autoral dos princípios normativos de análise de valor limite."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

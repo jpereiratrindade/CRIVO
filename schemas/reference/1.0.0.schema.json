@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Reference Registry Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.reference/1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "edition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "quality_model_standard",
+        "testing_standard",
+        "specification",
+        "framework",
+        "tool",
+        "guide",
+        "taxonomy",
+        "report_format"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status_at_registration": {
+      "type": "string",
+      "enum": ["published", "draft", "active", "deprecated", "maintained", "candidate"]
+    },
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "rights": {
+      "type": "object",
+      "properties": {
+        "distribution": {
+          "type": "string",
+          "enum": [
+            "metadata_only",
+            "open_access",
+            "permissive",
+            "proprietary_restricted",
+            "fair_use_summary"
+          ]
+        },
+        "license_review": {
+          "type": "string",
+          "enum": [
+            "required",
+            "verified_open",
+            "not_applicable",
+            "reviewed"
+          ]
+        },
+        "attribution": {
+          "type": "string"
+        }
+      },
+      "required": ["distribution", "license_review"],
+      "additionalProperties": false
+    },
+    "catalog_level": {
+      "type": "string",
+      "enum": [
+        "inventoried",
+        "mapped",
+        "operationalizable",
+        "implemented",
+        "evidenced"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "edition",
+    "issuer",
+    "kind",
+    "title",
+    "url",
+    "rights",
+    "catalog_level"
+  ],
+  "additionalProperties": false
+}

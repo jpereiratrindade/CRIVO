@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "googletest",
+  "edition": "1.16.0",
+  "issuer": "Google LLC",
+  "kind": "framework",
+  "title": "GoogleTest — Google Testing and Mocking Framework",
+  "status_at_registration": "published",
+  "url": "https://github.com/google/googletest",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "BSD-3-Clause license."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Framework C++ para testes unitários e de integração com integração nativa ao CTest via gtest_discover_tests."
+}

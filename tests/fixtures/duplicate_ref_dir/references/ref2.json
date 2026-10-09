@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "duplicate-ref",
+  "edition": "2026",
+  "issuer": "Another Issuer",
+  "kind": "guide",
+  "title": "Duplicate Reference 2 Colliding Identity",
+  "url": "https://example.org/duplicate",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required"
+  },
+  "catalog_level": "inventoried"
+}

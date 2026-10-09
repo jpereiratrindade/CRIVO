@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-ieee-29119-4",
+  "edition": "2021",
+  "issuer": "ISO/IEC/IEEE",
+  "kind": "testing_standard",
+  "title": "Software and systems engineering — Software testing — Part 4: Test techniques",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/79430.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC/IEEE copyright applies. Stored strictly as catalog metadata and technique taxonomy."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Referência metodológica internacional para classificação e formalização de técnicas de teste."
+}

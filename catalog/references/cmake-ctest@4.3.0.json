@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "cmake-ctest",
+  "edition": "4.3.0",
+  "issuer": "Kitware Inc.",
+  "kind": "tool",
+  "title": "CMake CTest Test Driver Program",
+  "status_at_registration": "published",
+  "url": "https://cmake.org/cmake/help/v4.3/manual/ctest.1.html",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "OSI-approved BSD-3-Clause license."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Orquestrador e executor de testes com suporte a descoberta JSON (--show-only=json-v1) e emissão de JUnit XML (--output-junit)."
+}

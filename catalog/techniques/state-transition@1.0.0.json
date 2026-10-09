@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "state-transition",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "State Transition Testing",
+  "procedure_summary": "Avalia o comportamento do sistema e a preservação de invariantes diante de sequências válidas e inválidas de transições de estado, incluindo cenários de rollback e cancelamento.",
+  "input_partitioning": "Estados válidos, transições permitidas, transições abortadas/revertidas e estados finais esperados.",
+  "oracle_class": "invariant_preservation",
+  "applicability": [
+    "capability:stateful_engine",
+    "capability:sqlite",
+    "capability:transaction_engine"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "derived_from",
+      "interpretation_limit": "Adaptação autoral dos princípios de transição de estado da norma para verificação de invariantes transacionais em banco de dados embarcado."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

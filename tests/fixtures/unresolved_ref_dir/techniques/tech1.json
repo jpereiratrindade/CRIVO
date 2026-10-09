@@ -1,0 +1,22 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "unresolved-tech",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Technique with Nonexistent Reference",
+  "procedure_summary": "Test procedure referencing missing standard.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": ["capability:test"],
+  "references": [
+    {
+      "id": "nonexistent-standard",
+      "edition": "9999",
+      "relation": "derived_from",
+      "interpretation_limit": "Missing standard."
+    }
+  ],
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

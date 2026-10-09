@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "clang-addresssanitizer",
+  "edition": "19.1.0",
+  "issuer": "LLVM Project",
+  "kind": "tool",
+  "title": "AddressSanitizer (ASan) Memory Error Detector",
+  "status_at_registration": "published",
+  "url": "https://clang.llvm.org/docs/AddressSanitizer.html",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Apache 2.0 with LLVM Exception."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Instrumentação dinâmica em tempo de compilação/execução para detecção de corrupção de memória (use-after-free, buffer overflow, etc.)."
+}

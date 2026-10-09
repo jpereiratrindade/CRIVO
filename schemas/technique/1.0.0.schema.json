@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Technique Registry Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.technique/1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "family": {
+      "type": "string",
+      "enum": [
+        "specification_based",
+        "structure_based",
+        "experience_based",
+        "static_analysis",
+        "dynamic_analysis",
+        "fuzzing",
+        "property_based",
+        "metamorphic",
+        "risk_based",
+        "contract_based"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "procedure_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_partitioning": {
+      "type": "string"
+    },
+    "oracle_class": {
+      "type": "string",
+      "enum": [
+        "deterministic_predicate",
+        "invariant_preservation",
+        "crash_or_fault_freedom",
+        "heuristic_bound",
+        "differential_comparison",
+        "static_rule_match",
+        "manual_inspection"
+      ]
+    },
+    "applicability": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "direct_reference",
+              "derived_from",
+              "informed_by",
+              "classifies_quality",
+              "checks_requirement",
+              "tooling"
+            ]
+          },
+          "interpretation_limit": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "edition", "relation", "interpretation_limit"],
+        "additionalProperties": false
+      }
+    },
+    "rights": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string",
+          "enum": ["open_access", "permissive", "metadata_only", "fair_use_summary"]
+        },
+        "license_review": {
+          "type": "string",
+          "enum": ["verified_open", "required", "not_applicable", "reviewed"]
+        }
+      },
+      "required": ["distribution", "license_review"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "family",
+    "name",
+    "procedure_summary",
+    "oracle_class",
+    "applicability",
+    "references",
+    "rights"
+  ],
+  "additionalProperties": false
+}

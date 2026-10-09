@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-25010",
+  "edition": "2023",
+  "issuer": "ISO/IEC",
+  "kind": "quality_model_standard",
+  "title": "Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/78176.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC copyright applies. Stored strictly as catalog metadata and structural taxonomy without reproducing proprietary normative text."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Referência internacional fundamental para categorização de atributos de qualidade de software."
+}

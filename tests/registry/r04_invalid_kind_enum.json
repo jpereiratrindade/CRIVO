@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "invalid-kind-ref",
+  "edition": "2026",
+  "issuer": "None",
+  "kind": "invented_kind_not_in_enum",
+  "title": "Invalid Kind Enum Test",
+  "url": "https://example.org",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required"
+  },
+  "catalog_level": "inventoried"
+}

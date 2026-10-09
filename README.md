@@ -70,7 +70,7 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
 - A tabela de testes é persistida pelo `init` e sincronizada no `run`; importação de projetos é apenas exemplo declarativo.
 - Os testes implementados validam as condições do CRIVO local, não a conformidade dos sistemas externos.
 - Banco e evidências são locais, com histórico simples, não assinados; cadeia de custódia e retenção ainda pendentes.
-- Servidor HTTP de demonstração síncrono e vinculado exclusivamente a `127.0.0.1`.
+- Servidor HTTP de demonstração síncrono vinculado por padrão a `127.0.0.1`. A opção `serve-lan` expõe em `0.0.0.0` sem TLS ou autenticação; não deve ser exposta a redes não confiáveis.
 - Licenciamento institucional e autoria devem ser definidos antes da publicação.
 
 ## Referências de arquitetura

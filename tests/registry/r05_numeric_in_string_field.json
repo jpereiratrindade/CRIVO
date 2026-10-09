@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "numeric-field-ref",
+  "edition": 2026,
+  "issuer": "None",
+  "kind": "standard",
+  "title": "Numeric In String Field Test",
+  "url": "https://example.org",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required"
+  },
+  "catalog_level": "inventoried"
+}

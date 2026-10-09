@@ -1,0 +1,29 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "negative-testing",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Negative Testing & Error Handling",
+  "procedure_summary": "Submete o componente a entradas inválidas, tipos incorretos, limites extrapolados e condições anômalas para verificar se a falha ocorre de forma controlada, segura e com rejeição estruturada.",
+  "input_partitioning": "Entradas malformadas, tipos incompatíveis, chaves ausentes, chaves desconhecidas e dados fora dos limites aceitos.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:parser",
+    "capability:json_decoder",
+    "capability:http_api",
+    "capability:cli"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "derived_from",
+      "interpretation_limit": "Adaptação dos métodos de teste de robustez e caminhos de exceção da ISO/IEC/IEEE 29119-4."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

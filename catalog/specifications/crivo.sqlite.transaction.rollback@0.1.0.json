@@ -1,0 +1,44 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.sqlite.transaction.rollback",
+  "version": "0.1.0",
+  "title": "SQLite Transaction Rollback Invariant Verification",
+  "description": "Verifica que um rollback explícito ou provocado por erro preserva o estado exato da base de dados anterior ao início da transação em banco efêmero.",
+  "source": "crivo-adaptation",
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "quality_attribute_mapping",
+      "interpretation_limit": "Mapeia a característica de Confiabilidade e Integridade de Dados conforme modelo conceitual da ISO/IEC 25010:2023."
+    }
+  ],
+  "category": "persistence",
+  "subcategory": "transactions",
+  "techniques": [
+    "state-transition",
+    "negative-testing"
+  ],
+  "level": "component",
+  "purpose": "regression",
+  "risk": [
+    "data_integrity",
+    "inconsistent_state"
+  ],
+  "preconditions": [
+    "ephemeral_database",
+    "wal_mode_enabled"
+  ],
+  "oracle": {
+    "type": "invariant",
+    "id": "rollback_preserves_preimage",
+    "description": "O estado pós-rollback deve ser identicamente equivalente à imagem da tabela pré-início da transação."
+  },
+  "implementation_refs": [
+    "crivo.sqlite.rollback-check@0.1.0"
+  ],
+  "applicability": [
+    "capability:sqlite"
+  ],
+  "qualification": "candidate"
+}

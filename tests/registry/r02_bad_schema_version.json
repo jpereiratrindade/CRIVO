@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.reference/99.9.9-invalid",
+  "id": "unknown-ref",
+  "edition": "2026",
+  "issuer": "None",
+  "kind": "standard",
+  "title": "Invalid Schema Version Test",
+  "url": "https://example.org",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required"
+  },
+  "catalog_level": "inventoried"
+}

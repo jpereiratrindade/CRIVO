@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "owasp-asvs",
+  "edition": "5.0.0",
+  "issuer": "OWASP Foundation",
+  "kind": "guide",
+  "title": "OWASP Application Security Verification Standard (ASVS) 5.0.0",
+  "status_at_registration": "published",
+  "url": "https://owasp.org/www-project-application-security-verification-standard/",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Referencial aberto de requisitos e controles de segurança para testes e verificação de software de aplicação."
+}

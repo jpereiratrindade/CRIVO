@@ -1,17 +1,30 @@
 cmake_minimum_required(VERSION 3.30)
 project(CRIVO VERSION 0.1.0 LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
 find_package(SQLite3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Threads REQUIRED)
-add_executable(crivo src/main.cpp src/core.cpp)
+
+add_executable(crivo
+  src/main.cpp
+  src/core.cpp
+  src/registry/json_impl.cpp
+  src/registry/validator.cpp
+  src/registry/importer.cpp
+)
+
 target_include_directories(crivo PRIVATE src)
 target_link_libraries(crivo PRIVATE SQLite3::SQLite3 Boost::headers Threads::Threads)
 target_compile_definitions(crivo PRIVATE BOOST_ERROR_CODE_HEADER_ONLY BOOST_JSON_HEADER_ONLY)
 target_compile_options(crivo PRIVATE -Wall -Wextra -Wpedantic)
+
 enable_testing()
+
+# Testes de regressão v0.1.0 (preservados intactos)
 add_test(NAME crivo_selftest COMMAND crivo selftest --file ${CMAKE_SOURCE_DIR}/catalog/tests.json)
 add_test(NAME crivo_catalog COMMAND crivo catalog --file ${CMAKE_SOURCE_DIR}/catalog/tests.json)
 add_test(NAME crivo_services_list COMMAND crivo services list --file ${CMAKE_SOURCE_DIR}/catalog/tests.json)
@@ -27,3 +40,47 @@ set_tests_properties(crivo_reject_duplicate_id PROPERTIES WILL_FAIL TRUE)
 add_test(NAME crivo_run_core COMMAND crivo run --file ${CMAKE_SOURCE_DIR}/catalog/tests.json --db ${CMAKE_BINARY_DIR}/smoke.db --profile core)
 add_test(NAME crivo_blocked_planned COMMAND crivo run --file ${CMAKE_SOURCE_DIR}/catalog/tests.json --db ${CMAKE_BINARY_DIR}/smoke.db --profile api)
 set_tests_properties(crivo_blocked_planned PROPERTIES WILL_FAIL TRUE DEPENDS crivo_run_core)
+
+# Testes de Aceite E1 — CRIVO-IMPL-001 (R01 a R12)
+
+# R01 — PASS: lote mínimo válido é aceito por parser estrito e resolver de referências
+add_test(NAME e1_r01_registry_validate_valid COMMAND crivo registry validate --dir ${CMAKE_SOURCE_DIR}/catalog)
+set_tests_properties(e1_r01_registry_validate_valid PROPERTIES PASS_REGULAR_EXPRESSION "CRIVO REGISTRY VALIDATION PASS")
+
+# R02 — FAIL: schema_version desconhecido é rejeitado
+add_test(NAME e1_r02_reject_unknown_schema COMMAND crivo registry validate --file ${CMAKE_SOURCE_DIR}/tests/registry/r02_bad_schema_version.json)
+set_tests_properties(e1_r02_reject_unknown_schema PROPERTIES WILL_FAIL TRUE)
+
+# R03 — FAIL: ID/edição duplicados são rejeitados
+add_test(NAME e1_r03_reject_duplicate_id_edition COMMAND crivo registry validate --dir ${CMAKE_SOURCE_DIR}/tests/fixtures/duplicate_ref_dir)
+set_tests_properties(e1_r03_reject_duplicate_id_edition PROPERTIES WILL_FAIL TRUE)
+
+# R04 — FAIL: enum de kind inválido é rejeitado
+add_test(NAME e1_r04_reject_invalid_kind_enum COMMAND crivo registry validate --file ${CMAKE_SOURCE_DIR}/tests/registry/r04_invalid_kind_enum.json)
+set_tests_properties(e1_r04_reject_invalid_kind_enum PROPERTIES WILL_FAIL TRUE)
+
+# R05 — FAIL: valor numérico no campo que exige string é rejeitado
+add_test(NAME e1_r05_reject_numeric_in_string COMMAND crivo registry validate --file ${CMAKE_SOURCE_DIR}/tests/registry/r05_numeric_in_string_field.json)
+set_tests_properties(e1_r05_reject_numeric_in_string PROPERTIES WILL_FAIL TRUE)
+
+# R06 — FAIL: técnica/especificação com referência inexistente é rejeitada
+add_test(NAME e1_r06_reject_unresolved_reference COMMAND crivo registry validate --dir ${CMAKE_SOURCE_DIR}/tests/fixtures/unresolved_ref_dir)
+set_tests_properties(e1_r06_reject_unresolved_reference PROPERTIES WILL_FAIL TRUE)
+
+# R07 — FAIL: fonte sem declaração de direitos é rejeitada
+add_test(NAME e1_r07_reject_missing_rights COMMAND crivo registry validate --file ${CMAKE_SOURCE_DIR}/tests/registry/r07_missing_rights.json)
+set_tests_properties(e1_r07_reject_missing_rights PROPERTIES WILL_FAIL TRUE)
+
+# R08 — FAIL: JSON sintaticamente inválido é rejeitado sem mutar dados
+add_test(NAME e1_r08_reject_syntax_error COMMAND crivo registry validate --file ${CMAKE_SOURCE_DIR}/tests/registry/r08_syntax_error.json)
+set_tests_properties(e1_r08_reject_syntax_error PROPERTIES WILL_FAIL TRUE)
+
+# R09 — PASS: repetição idempotente não multiplica registros/eventos
+add_test(NAME e1_r09_import_idempotent_first COMMAND crivo registry import --dir ${CMAKE_SOURCE_DIR}/catalog --db ${CMAKE_BINARY_DIR}/e1_test.db)
+add_test(NAME e1_r09_import_idempotent_repeat COMMAND crivo registry import --dir ${CMAKE_SOURCE_DIR}/catalog --db ${CMAKE_BINARY_DIR}/e1_test.db)
+set_tests_properties(e1_r09_import_idempotent_first PROPERTIES PASS_REGULAR_EXPRESSION "CRIVO REGISTRY IMPORT PASS")
+set_tests_properties(e1_r09_import_idempotent_repeat PROPERTIES DEPENDS e1_r09_import_idempotent_first PASS_REGULAR_EXPRESSION "CRIVO REGISTRY IMPORT PASS")
+
+# R10 — PASS: --dry-run não modifica banco nem catálogo
+add_test(NAME e1_r10_dry_run_no_mutation COMMAND crivo registry import --dir ${CMAKE_SOURCE_DIR}/catalog --db ${CMAKE_BINARY_DIR}/e1_dryrun_must_not_exist.db --dry-run)
+set_tests_properties(e1_r10_dry_run_no_mutation PROPERTIES PASS_REGULAR_EXPRESSION "DRY-RUN")

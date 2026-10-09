@@ -1,0 +1,14 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "duplicate-ref",
+  "edition": "2026",
+  "issuer": "ISO",
+  "kind": "standard",
+  "title": "Duplicate Reference 1",
+  "url": "https://example.org",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required"
+  },
+  "catalog_level": "inventoried"
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "syntax-error-ref",
+  "edition": "2026",
+  "issuer": "None",
+  "kind": "standard"
+  "title": "Syntax Error Test Missing Comma"
+}

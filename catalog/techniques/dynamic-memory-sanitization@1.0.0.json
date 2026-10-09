@@ -1,0 +1,27 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "dynamic-memory-sanitization",
+  "version": "1.0.0",
+  "family": "dynamic_analysis",
+  "name": "Dynamic Memory Sanitization & Instrumentation",
+  "procedure_summary": "Executa a suíte de testes com binários instrumentados pelo AddressSanitizer para identificar vazamentos, transbordamentos de pilha/heap, uso após liberação e acessos ilegais à memória.",
+  "input_partitioning": "Cargas nominais de teste, sequências de alocação intensiva e chamadas a APIs C++ e SQLite.",
+  "oracle_class": "crash_or_fault_freedom",
+  "applicability": [
+    "capability:cplusplus",
+    "capability:asan"
+  ],
+  "references": [
+    {
+      "id": "clang-addresssanitizer",
+      "edition": "19.1.0",
+      "relation": "tooling",
+      "interpretation_limit": "Utilização das garantias e diagnósticos do AddressSanitizer do LLVM/Clang/GCC."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

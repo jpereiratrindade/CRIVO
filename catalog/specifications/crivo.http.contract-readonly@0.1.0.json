@@ -1,0 +1,42 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.http.contract-readonly",
+  "version": "0.1.0",
+  "title": "HTTP Read-Only Interface Contract",
+  "description": "Verifica que todas as rotas da API HTTP aceitam apenas requisições GET idempotentes e rejeitam métodos mutantes (POST, PUT, DELETE, PATCH) com status 405 Method Not Allowed.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "owasp-asvs",
+      "edition": "5.0.0",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Inspirado nas diretrizes de restrição de métodos HTTP e controle de superfície de ataque do OWASP ASVS v5.0."
+    }
+  ],
+  "category": "interface",
+  "subcategory": "http_api",
+  "techniques": [
+    "negative-testing"
+  ],
+  "level": "integration",
+  "purpose": "security",
+  "risk": [
+    "unauthorized_mutation",
+    "csrf_side_effects"
+  ],
+  "preconditions": [
+    "server_listening_loopback"
+  ],
+  "oracle": {
+    "type": "status_code",
+    "id": "http_method_not_allowed_405",
+    "description": "Qualquer método além de GET deve retornar status HTTP 405 sem mutar o banco de dados."
+  },
+  "implementation_refs": [
+    "crivo.http.readonly-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:http_server"
+  ],
+  "qualification": "candidate"
+}

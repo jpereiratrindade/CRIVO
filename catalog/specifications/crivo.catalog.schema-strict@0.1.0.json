@@ -1,0 +1,43 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.catalog.schema-strict",
+  "version": "0.1.0",
+  "title": "Catalog Strict Schema and Cross-Reference Validation",
+  "description": "Verifica se todos os registros declarativos obedecem estritamente aos schemas v1.0.0, rejeitando tipos incorretos, chaves desconhecidas e referências quebradas.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "quality_attribute_mapping",
+      "interpretation_limit": "Mapeia a característica de Adequação Funcional e Robustez conforme ISO/IEC 25010:2023."
+    }
+  ],
+  "category": "validation",
+  "subcategory": "schema_integrity",
+  "techniques": [
+    "negative-testing",
+    "boundary-value-analysis"
+  ],
+  "level": "unit",
+  "purpose": "regression",
+  "risk": [
+    "malformed_data",
+    "unverified_provenance"
+  ],
+  "preconditions": [
+    "schemas_available"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "strict_json_validation_succeeds",
+    "description": "Validação estrita deve aprovar registros conformes e reprovar com mensagem clara registros corrompidos ou inválidos."
+  },
+  "implementation_refs": [
+    "crivo.registry.strict-validator@0.1.0"
+  ],
+  "applicability": [
+    "capability:json_parser"
+  ],
+  "qualification": "candidate"
+}

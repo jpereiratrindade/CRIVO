@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "w3c-wcag",
+  "edition": "2.2",
+  "issuer": "World Wide Web Consortium (W3C)",
+  "kind": "specification",
+  "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+  "status_at_registration": "published",
+  "url": "https://www.w3.org/TR/WCAG22/",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "W3C Document License applies. Stored strictly as catalog metadata and structural taxonomy without automatic claims of universal compliance."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Especificação internacional para diretrizes e critérios de sucesso de acessibilidade em interfaces web."
+}

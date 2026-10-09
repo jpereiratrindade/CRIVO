@@ -1,0 +1,18 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.sqlite.rollback-check",
+  "version": "0.1.0",
+  "implements": "crivo.sqlite.transaction.rollback@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "sqlite3"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "ephemeral",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_sqlite_rollback_check",
+  "notes": "Executa verificação em banco descartável em memória ou arquivo efêmero."
+}

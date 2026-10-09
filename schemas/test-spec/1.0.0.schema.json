@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Test Specification Registry Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.test-spec/1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["crivo-adaptation", "crivo-original", "project-specific", "standard-derived"]
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "quality_attribute_mapping",
+              "classifies_quality",
+              "informed_by",
+              "derived_from",
+              "checks_requirement",
+              "tooling",
+              "direct_reference"
+            ]
+          },
+          "interpretation_limit": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "edition", "relation", "interpretation_limit"],
+        "additionalProperties": false
+      }
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subcategory": {
+      "type": "string",
+      "minLength": 1
+    },
+    "techniques": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "level": {
+      "type": "string",
+      "enum": ["unit", "component", "integration", "system", "acceptance"]
+    },
+    "purpose": {
+      "type": "string",
+      "enum": ["functional", "regression", "robustness", "performance", "security", "accessibility", "concurrency"]
+    },
+    "risk": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["predicate", "invariant", "status_code", "error_match", "exit_code", "static_check"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "id"],
+      "additionalProperties": false
+    },
+    "implementation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applicability": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "qualification": {
+      "type": "string",
+      "enum": ["candidate", "qualified", "provisional", "deprecated"]
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "source",
+    "references",
+    "category",
+    "subcategory",
+    "techniques",
+    "level",
+    "purpose",
+    "oracle",
+    "applicability",
+    "qualification"
+  ],
+  "additionalProperties": false
+}

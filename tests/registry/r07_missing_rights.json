@@ -1,0 +1,10 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "missing-rights-ref",
+  "edition": "2026",
+  "issuer": "None",
+  "kind": "standard",
+  "title": "Missing Rights Test",
+  "url": "https://example.org",
+  "catalog_level": "inventoried"
+}

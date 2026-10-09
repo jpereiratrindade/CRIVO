@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Test Implementation Registry Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.implementation/1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "implements": {
+      "type": "string"
+    },
+    "adapter": {
+      "type": "string",
+      "enum": ["builtin", "ctest", "gtest", "custom_script", "http_runner"]
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "properties": {
+        "destructive": {
+          "type": "boolean"
+        },
+        "isolation": {
+          "type": "string",
+          "enum": ["ephemeral", "process_isolated", "filesystem_sandbox", "none"]
+        },
+        "network": {
+          "type": "string",
+          "enum": ["none", "loopback_only", "full"]
+        }
+      },
+      "required": ["destructive", "isolation", "network"],
+      "additionalProperties": false
+    },
+    "qualification": {
+      "type": "string",
+      "enum": ["candidate", "qualified", "provisional", "deprecated"]
+    },
+    "entrypoint": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "implements",
+    "adapter",
+    "requires",
+    "execution_policy",
+    "qualification"
+  ],
+  "additionalProperties": false
+}

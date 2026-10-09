@@ -1,0 +1,43 @@
+{
+  "schema_version": "crivo.experience-record/1.0.0",
+  "experience_id": "exp-lume-ledger-concurrency-staleness",
+  "project_id": "lume",
+  "source_revision": "657a2e18dd0594c66a6b3ed4cdb6ebb00eb7cc44",
+  "context": {
+    "domain": "Runtime Contextual Pessoal e Event Ledger",
+    "language": "C++26",
+    "platform": "Linux POSIX (Fedora Silverblue / Debian Embedded)",
+    "components": ["sqlite3_wal", "reentrant_file_lock", "staleness_digest", "event_ledger"]
+  },
+  "problem": "Risco de corrupção de sequência monotônica sob concorrência multithread e risco de aplicação de propostas de planejamento temporal obsoletas quando o contexto de intenções sofre mutação após a geração da proposta.",
+  "alternatives": [
+    {
+      "title": "Locks exclusivos sem reentrância e validação apenas por ID de intenção",
+      "tradeoffs": "Simples, mas suscetível a deadlocks em chamadas aninhadas no mesmo processo e não detecta adição/remoção de intenções conflitantes no horizonte planejado.",
+      "rejected_reason": "Inseguro contra deadlocks multithread e permite sobreposição de blocos quando novas intenções são inseridas durante a revisão da proposta."
+    },
+    {
+      "title": "Lock reentrante thread-safe com fcntl + Verificação estrita de basis_intentions_digest na aplicação do plano",
+      "tradeoffs": "Garante numeração estritamente monotônica sem lacunas ou deadlocks, e invalida deterministicamente propostas obsoletas (PLAN_STALE) se qualquer intenção divergir."
+    }
+  ],
+  "choice": "Implementação de acquire_reentrant_lock associado a condition_variable por thread, PRAGMA busy_timeout=5000 no SQLite WAL, e cálculo de digest canônico das intenções abertas (basis_intentions_digest) registrado no evento EventPlanProposed e validado em apply_plan.",
+  "procedure": "1. Proteger todas as transações com ledger_.with_exclusive_lock.\n2. Computar basis_intentions_digest antes de gerar a proposta.\n3. Persistir basis_intentions_digest e as_of_sequence no evento PLAN_PROPOSED no SQLite.\n4. Em apply_plan, recalcular o digest das intenções abertas e rejeitar com PLAN_STALE em caso de divergência.",
+  "observed_result": "100% de sucesso no teste de estresse de 6 threads concorrentes com 240 eventos persistidos estritamente em ordem monotônica, e rejeição fidedigna de planos quando intenções divergem antes do consentimento do usuário.",
+  "evidence_ref": {
+    "evidence_id": "evidence-lume-2026-10-09T19:30:22Z-e7d3b1e1348b",
+    "sha256": "e7d3b1e1348be96ba84c1d9fff48c264db2b6cc161449c2fa16f35294aabb72d",
+    "path": ".run/evidence/evidence.json"
+  },
+  "applicability_tags": [
+    "capability:sqlite",
+    "sqlite:wal",
+    "persistence:acid",
+    "concurrency:posix_lock",
+    "planning:staleness_digest",
+    "monotonic_ledger",
+    "runtime:cpp26"
+  ],
+  "limitations": "Requer sistema de arquivos local com suporte a POSIX fcntl locks e conformidade com transações SQLite WAL.",
+  "created_at": "2026-10-09T19:30:22Z"
+}

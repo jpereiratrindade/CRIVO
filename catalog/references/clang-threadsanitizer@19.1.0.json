@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "clang-threadsanitizer",
+  "edition": "19.1.0",
+  "issuer": "LLVM Project",
+  "kind": "tool",
+  "title": "Clang ThreadSanitizer (TSan) — Data Race and Deadlock Detector",
+  "status_at_registration": "published",
+  "url": "https://clang.llvm.org/docs/ThreadSanitizer.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Apache 2.0 with LLVM Exception. Stored as metadata and execution engine definition."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Instrumentador e executor dinâmico para detecção de condições de corrida (data races) e deadlocks em código multithreaded."
+}

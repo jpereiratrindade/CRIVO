@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "sarif",
+  "edition": "2.1.0",
+  "issuer": "OASIS",
+  "kind": "report_format",
+  "title": "Static Analysis Results Interchange Format (SARIF) Version 2.1.0",
+  "status_at_registration": "published",
+  "url": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "OASIS Standard"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Formato padrao internacional para saida e interoperabilidade de ferramentas de analise estatica."
+}

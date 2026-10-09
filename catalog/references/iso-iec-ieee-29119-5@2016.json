@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-ieee-29119-5",
+  "edition": "2016",
+  "issuer": "ISO/IEC/IEEE",
+  "kind": "testing_standard",
+  "title": "Software and systems engineering — Software testing — Part 5: Keyword-driven testing",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/66442.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC/IEEE copyright applies. Stored strictly as catalog metadata."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Metodologia para especificação e execução de testes baseados em palavras-chave e contratos desacoplados."
+}

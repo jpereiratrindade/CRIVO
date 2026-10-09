@@ -1,0 +1,18 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.security.cwe-input-validation-checker",
+  "version": "0.1.0",
+  "implements": "crivo.security.cwe-input-validation@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "crivo_core"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_check_input_validation_cwe",
+  "notes": "Verificacao de sanitizacao de entrada e rejeicao de SQLi e path traversal."
+}

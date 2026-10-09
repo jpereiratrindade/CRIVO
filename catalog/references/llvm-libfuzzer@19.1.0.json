@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "llvm-libfuzzer",
+  "edition": "19.1.0",
+  "issuer": "LLVM Project",
+  "kind": "tool",
+  "title": "LLVM libFuzzer — Coverage-guided In-process Fuzzing Engine",
+  "status_at_registration": "published",
+  "url": "https://llvm.org/docs/LibFuzzer.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Apache 2.0 with LLVM Exception. Stored as metadata and fuzzing engine reference."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Motor de testes de robustez guiado por cobertura para identificação de falhas de segurança e limites de entrada."
+}

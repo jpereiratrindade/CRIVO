@@ -1,0 +1,32 @@
+{
+  "schema_version": "crivo.profile/1.0.0",
+  "id": "security-iso",
+  "version": "1.0.0",
+  "title": "Security & Cryptographic Hardening Profile",
+  "description": "Perfil focado em mitigação de riscos OWASP ASVS, integridade criptográfica SHA-256 e hardening de superfície.",
+  "selection": {
+    "categories": [
+      "security",
+      "interface",
+      "governance"
+    ],
+    "levels": [
+      "unit",
+      "integration"
+    ],
+    "purposes": [
+      "security",
+      "diagnostic"
+    ],
+    "include_specs": [
+      "crivo.http.contract-readonly@0.1.0",
+      "crivo.security.header-hardening@0.1.0",
+      "crivo.memory.sha256-provenance@0.1.0"
+    ],
+    "exclude_specs": []
+  },
+  "policy": {
+    "fail_fast": false,
+    "allow_unqualified": true
+  }
+}

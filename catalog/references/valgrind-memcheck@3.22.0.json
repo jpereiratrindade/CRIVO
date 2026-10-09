@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "valgrind-memcheck",
+  "edition": "3.22.0",
+  "issuer": "Valgrind Developers",
+  "kind": "tool",
+  "title": "Valgrind Memcheck — Dynamic Memory Management and Memory Leak Detector",
+  "status_at_registration": "published",
+  "url": "https://valgrind.org/docs/manual/mc-manual.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Valgrind GPL-2.0. Stored as metadata and execution engine definition."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Motor de análise dinâmica de execução para detecção de vazamentos de memória (leaks) e acessos ilegais."
+}

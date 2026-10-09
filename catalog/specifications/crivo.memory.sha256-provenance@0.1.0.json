@@ -1,0 +1,49 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.memory.sha256-provenance",
+  "version": "0.1.0",
+  "title": "SHA-256 Provenance & Audit Trail Verification",
+  "description": "Verifica que todos os artefatos de evidência gerados pelo CRIVO possuem digest criptográfico SHA-256 canônico conforme FIPS 180-4 e são rastreáveis na trilha de auditoria.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-3",
+      "edition": "2021",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Requisito de integridade e não repúdio em relatórios de teste e documentação de evidência."
+    },
+    {
+      "id": "ieee-1012",
+      "edition": "2016",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Garantia de integridade e rastreabilidade estrita da trilha de V&V."
+    }
+  ],
+  "category": "governance",
+  "subcategory": "cryptographic_provenance",
+  "techniques": [
+    "equivalence-partitioning",
+    "boundary-value-analysis"
+  ],
+  "level": "unit",
+  "purpose": "security",
+  "risk": [
+    "evidence_tampering",
+    "provenance_loss"
+  ],
+  "preconditions": [
+    "evidence_artifacts_persisted"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "sha256_matches_artifact_digest",
+    "description": "O digest SHA-256 recalculado dos bytes do artefato JUnit/JSON deve ser idêntico ao digest gravado na evidência."
+  },
+  "implementation_refs": [
+    "crivo.memory.sha256-provenance-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:filesystem"
+  ],
+  "qualification": "candidate"
+}

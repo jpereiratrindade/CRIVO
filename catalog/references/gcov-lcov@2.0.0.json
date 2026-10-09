@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "gcov-lcov",
+  "edition": "2.0.0",
+  "issuer": "GNU & LTP",
+  "kind": "tool",
+  "title": "GNU Code Coverage & LCOV Test Coverage Extraction Toolchain",
+  "status_at_registration": "active",
+  "url": "https://github.com/linux-test-project/lcov",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Free Software Foundation & Linux Test Project"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Toolchain oficial para extracao e agregacao de relatorios de cobertura de testes em C/C++."
+}

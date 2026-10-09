@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "owasp-top10",
+  "edition": "2021",
+  "issuer": "OWASP",
+  "kind": "standard",
+  "title": "OWASP Top 10 — The Ten Most Critical Web Application Security Risks",
+  "status_at_registration": "published",
+  "url": "https://owasp.org/Top10/",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "OWASP Foundation (CC BY-SA 4.0). Stored as metadata and security rule references."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Consenso internacional sobre os principais riscos de segurança e vulnerabilidades em sistemas computacionais conectados."
+}

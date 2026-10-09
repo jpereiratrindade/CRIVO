@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "cyclonedx",
+  "edition": "1.6.0",
+  "issuer": "OWASP Foundation",
+  "kind": "specification",
+  "title": "OWASP CycloneDX Software Bill of Materials (SBOM) Standard",
+  "status_at_registration": "published",
+  "url": "https://cyclonedx.org/specification/overview/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "OWASP Foundation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Padrao de seguranca para rastreabilidade de inventario e cadeia de suprimentos de software (SBOM)."
+}

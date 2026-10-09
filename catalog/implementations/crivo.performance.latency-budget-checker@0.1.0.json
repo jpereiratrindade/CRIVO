@@ -1,0 +1,18 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.performance.latency-budget-checker",
+  "version": "0.1.0",
+  "implements": "crivo.performance.latency-budget@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "curl_client"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "loopback_only"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_check_latency_budget",
+  "notes": "Verificacao de orcamento de latencia p95 em endpoints HTTP SisTer."
+}

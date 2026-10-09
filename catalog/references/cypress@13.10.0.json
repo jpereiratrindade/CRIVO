@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "cypress",
+  "edition": "13.10.0",
+  "issuer": "Cypress.io",
+  "kind": "framework",
+  "title": "Cypress Component and End-to-End Testing Engine",
+  "status_at_registration": "active",
+  "url": "https://www.cypress.io/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Cypress.io Inc."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Ferramenta para testes de componentes e integracao de interfaces web."
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "catch2",
+  "edition": "3.5.0",
+  "issuer": "Catch2 Authors",
+  "kind": "framework",
+  "title": "Catch2 — Modern, C++-native Test Framework for Unit Tests and TDD",
+  "status_at_registration": "published",
+  "url": "https://github.com/catchorg/Catch2",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Boost Software License 1.0. Stored as metadata and execution adapter reference."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Framework moderno de testes unitários para C++20/C++23/C++26 com geração de relatórios JUnit e oráculos de asserção."
+}

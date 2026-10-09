@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-ieee-29119-2",
+  "edition": "2021",
+  "issuer": "ISO/IEC/IEEE",
+  "kind": "testing_standard",
+  "title": "Software and systems engineering — Software testing — Part 2: Test processes",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/79428.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC/IEEE copyright applies. Stored strictly as catalog metadata."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Processos de teste organizacionais, gerenciamento de testes e processos dinâmicos de verificação."
+}

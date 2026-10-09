@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "mitre-capec",
+  "edition": "3.9.0",
+  "issuer": "MITRE",
+  "kind": "taxonomy",
+  "title": "Common Attack Pattern Enumeration and Classification (CAPEC)",
+  "status_at_registration": "published",
+  "url": "https://capec.mitre.org/",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "The MITRE Corporation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Catalogo de padroes de ataque cibernetico empregados para explorar fraquezas de software."
+}

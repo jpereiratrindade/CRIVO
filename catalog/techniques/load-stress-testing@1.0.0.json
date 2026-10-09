@@ -1,0 +1,34 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "load-stress-testing",
+  "version": "1.0.0",
+  "family": "dynamic_analysis",
+  "name": "Load and Stress Capacity Testing",
+  "procedure_summary": "Submete os endpoints e o banco a cargas concorrentes para mapear latencias percentis (p95/p99) e limites de capacidade.",
+  "input_partitioning": "Curvas de requisicoes constantes, rampa de carga e picos repentinos de estresse.",
+  "oracle_class": "heuristic_bound",
+  "applicability": [
+    "capability:http_server",
+    "capability:concurrency",
+    "capability:sqlite_wal"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "classifies_quality",
+      "interpretation_limit": "Caracteristica de Eficiencia de Desempenho e Comportamento Temporal."
+    },
+    {
+      "id": "k6-performance",
+      "edition": "0.50.0",
+      "relation": "tooling",
+      "interpretation_limit": "Execucao de cenarios k6."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

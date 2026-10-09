@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "semgrep",
+  "edition": "1.70.0",
+  "issuer": "Semgrep",
+  "kind": "tool",
+  "title": "Semgrep Fast Code Analysis and Vulnerability Pattern Engine",
+  "status_at_registration": "active",
+  "url": "https://semgrep.dev/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Semgrep Inc."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Motor de analise estatica rapido baseado em busca sintatica e padroes declarativos de seguranca."
+}

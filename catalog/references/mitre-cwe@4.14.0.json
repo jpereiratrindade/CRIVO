@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "mitre-cwe",
+  "edition": "4.14.0",
+  "issuer": "MITRE",
+  "kind": "taxonomy",
+  "title": "Common Weakness Enumeration (CWE) Specification",
+  "status_at_registration": "published",
+  "url": "https://cwe.mitre.org/",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "The MITRE Corporation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Dicionario formal de fraquezas de software e vetores de vulnerabilidade."
+}

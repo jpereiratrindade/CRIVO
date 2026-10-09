@@ -1,0 +1,51 @@
+{
+  "schema_version": "crivo.profile/1.0.0",
+  "id": "complete-international-benchmark",
+  "version": "1.0.0",
+  "title": "CRIVO Full International Standards Benchmark Profile",
+  "description": "Perfil integral do CRIVO cobrindo a totalidade dos padroes internacionais ISO/IEC, IEEE, NIST, OWASP, MITRE CWE, SWEBOK, MISRA e ferramentas de auditoria.",
+  "selection": {
+    "categories": [
+      "persistence",
+      "validation",
+      "interface",
+      "security",
+      "concurrency",
+      "provenance",
+      "interoperability",
+      "performance"
+    ],
+    "levels": [
+      "unit",
+      "component",
+      "integration",
+      "system"
+    ],
+    "purposes": [
+      "regression",
+      "security",
+      "robustness",
+      "concurrency",
+      "functional",
+      "performance"
+    ],
+    "include_specs": [
+      "crivo.catalog.schema-strict@0.1.0",
+      "crivo.http.contract-readonly@0.1.0",
+      "crivo.sqlite.transaction.rollback@0.1.0",
+      "crivo.security.header-hardening@0.1.0",
+      "crivo.sqlite.wal.concurrency@0.1.0",
+      "crivo.memory.sha256-provenance@0.1.0",
+      "crivo.contract.sarif-export@0.1.0",
+      "crivo.concurrency.thread-sanitizer@0.1.0",
+      "crivo.supply-chain.sbom-audit@0.1.0",
+      "crivo.security.cwe-input-validation@0.1.0",
+      "crivo.performance.latency-budget@0.1.0"
+    ],
+    "exclude_specs": []
+  },
+  "policy": {
+    "fail_fast": false,
+    "allow_unqualified": true
+  }
+}

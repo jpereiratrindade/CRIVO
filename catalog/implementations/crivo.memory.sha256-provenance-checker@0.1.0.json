@@ -1,0 +1,19 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.memory.sha256-provenance-checker",
+  "version": "0.1.0",
+  "implements": "crivo.memory.sha256-provenance@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "sha256_canonical",
+    "filesystem"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_memory_sha256_provenance_checker",
+  "notes": "Calcula digest FIPS 180-4 de artefatos de evidência e valida integridade com o banco SQLite WAL."
+}

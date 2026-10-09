@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "aflplusplus",
+  "edition": "4.21.0",
+  "issuer": "AFLplusplus Community",
+  "kind": "tool",
+  "title": "AFL++ American Fuzzy Lop Enhanced Fuzzing Engine",
+  "status_at_registration": "active",
+  "url": "https://aflplus.plus/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "AFLplusplus Community"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Motor de fuzzing guiado por cobertura avancado para teste de robustez contra entradas anormais."
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "static-security-analysis",
+  "version": "1.0.0",
+  "family": "static_analysis",
+  "name": "Static Security & CERT Conformance Analysis",
+  "procedure_summary": "Inspeciona o código-fonte C++ contra regras do SEI CERT C++ e padrões de fraqueza CWE para detectar vulnerabilidades sem execução.",
+  "input_partitioning": "Arquivos de cabeçalho (.hpp/.h), unidades de tradução (.cpp) e chamadas a APIs do sistema.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:filesystem",
+    "capability:cli"
+  ],
+  "references": [
+    {
+      "id": "sei-cert-cpp",
+      "edition": "2016",
+      "relation": "derived_from",
+      "interpretation_limit": "Verificação de conformidade com regras de codificação segura do SEI CERT."
+    },
+    {
+      "id": "cppcheck",
+      "edition": "2.14.0",
+      "relation": "tooling",
+      "interpretation_limit": "Regras de análise estática Cppcheck aplicadas pelo motor do CRIVO."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

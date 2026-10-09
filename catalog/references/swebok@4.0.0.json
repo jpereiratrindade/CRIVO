@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "swebok",
+  "edition": "4.0.0",
+  "issuer": "IEEE Computer Society",
+  "kind": "guide",
+  "title": "Guide to the Software Engineering Body of Knowledge (SWEBOK Guide V4.0)",
+  "status_at_registration": "published",
+  "url": "https://www.computer.org/education/bodies-of-knowledge/software-engineering",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "IEEE Computer Society"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Corpo de conhecimento fundamental da engenharia de software incluindo os capitulos de Testing e Quality."
+}

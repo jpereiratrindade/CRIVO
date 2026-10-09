@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "decision-table-testing",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Decision Table Testing (DTT)",
+  "procedure_summary": "Modela combinações complexas de condições lógicas de entrada e suas respectivas ações esperadas em uma matriz determinística.",
+  "input_partitioning": "Combinações booleanas de condições de negócio, flags e regras de transação.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:sqlite",
+    "capability:cli",
+    "capability:http_server"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "derived_from",
+      "interpretation_limit": "Aplicação de matriz de decisão conforme ISO 29119-4."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

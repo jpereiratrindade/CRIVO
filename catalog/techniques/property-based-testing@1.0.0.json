@@ -1,0 +1,27 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "property-based-testing",
+  "version": "1.0.0",
+  "family": "property_based",
+  "name": "Property-Based Testing (Generative Invariants)",
+  "procedure_summary": "Gera centenas de entradas pseudo-aleatorias com shrinking automatico para provar invariantes de software.",
+  "input_partitioning": "Espaco gerador de tipos primitivos, colecoes e estruturas de dados aninhadas.",
+  "oracle_class": "invariant_preservation",
+  "applicability": [
+    "capability:fuzzer",
+    "capability:generative_testing"
+  ],
+  "references": [
+    {
+      "id": "swebok",
+      "edition": "4.0.0",
+      "relation": "informed_by",
+      "interpretation_limit": "Topico sobre teste baseado em propriedades e invariantes formais."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

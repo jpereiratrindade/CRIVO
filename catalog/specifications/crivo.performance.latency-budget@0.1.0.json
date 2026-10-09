@@ -1,0 +1,42 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.performance.latency-budget",
+  "version": "0.1.0",
+  "title": "Verificacao de Orcamento de Latencia de API (SLA p95 < 20ms)",
+  "description": "Avalia latencia de respostas em endpoints de leitura sob carga concorrente.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "classifies_quality",
+      "interpretation_limit": "Comportamento Temporal e Eficiencia de Desempenho."
+    }
+  ],
+  "category": "performance",
+  "subcategory": "api_latency",
+  "techniques": [
+    "load-stress-testing"
+  ],
+  "level": "integration",
+  "purpose": "performance",
+  "risk": [
+    "service_degradation",
+    "timeout"
+  ],
+  "preconditions": [
+    "sqlite_wal_database_loaded"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "p95_under_threshold",
+    "description": "Percentil 95 de latencia de resposta estritamente inferior a 20 milissegundos."
+  },
+  "implementation_refs": [
+    "crivo.performance.latency-budget-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:http_server"
+  ],
+  "qualification": "candidate"
+}

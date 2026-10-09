@@ -1,0 +1,27 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "thread-race-detection",
+  "version": "1.0.0",
+  "family": "dynamic_analysis",
+  "name": "Dynamic Data Race & Concurrency Testing",
+  "procedure_summary": "Instrumenta o binário para monitorar acessos concorrentes à memória por múltiplas threads sem sincronização adequada.",
+  "input_partitioning": "Cargas concorrentes com múltiplos leitores e escritores simultâneos em estruturas compartilhadas.",
+  "oracle_class": "crash_or_fault_freedom",
+  "applicability": [
+    "capability:posix_env",
+    "capability:sqlite"
+  ],
+  "references": [
+    {
+      "id": "clang-threadsanitizer",
+      "edition": "19.1.0",
+      "relation": "tooling",
+      "interpretation_limit": "Detecção de data races suportada pelo compilador Clang TSan."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

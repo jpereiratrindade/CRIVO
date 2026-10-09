@@ -1,0 +1,48 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.concurrency.thread-sanitizer",
+  "version": "0.1.0",
+  "title": "Deteccao de Concorrencia Indevida e Race Conditions com TSan",
+  "description": "Executa testes multithreaded instrumentados com Clang ThreadSanitizer garantindo ausencia de data races.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "clang-threadsanitizer",
+      "edition": "19.1.0",
+      "relation": "tooling",
+      "interpretation_limit": "Deteccao de condicoes de corrida em tempo de execucao."
+    },
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "classifies_quality",
+      "interpretation_limit": "Atributos de Confiabilidade e Robustez."
+    }
+  ],
+  "category": "concurrency",
+  "subcategory": "race_conditions",
+  "techniques": [
+    "thread-race-detection"
+  ],
+  "level": "integration",
+  "purpose": "concurrency",
+  "risk": [
+    "memory_corruption",
+    "deadlock"
+  ],
+  "preconditions": [
+    "tsan_binary_compiled"
+  ],
+  "oracle": {
+    "type": "exit_code",
+    "id": "zero_data_races_reported",
+    "description": "Processo deve finalizar com codigo de saida 0 e zero data races detectados pelo runtime sanitizador."
+  },
+  "implementation_refs": [
+    "crivo.concurrency.thread-sanitizer-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:posix_threads"
+  ],
+  "qualification": "candidate"
+}

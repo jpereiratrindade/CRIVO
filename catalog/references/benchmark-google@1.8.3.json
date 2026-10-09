@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "benchmark-google",
+  "edition": "1.8.3",
+  "issuer": "Google",
+  "kind": "framework",
+  "title": "Google Benchmark Microbenchmark Support Library",
+  "status_at_registration": "active",
+  "url": "https://github.com/google/benchmark",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Google LLC"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Biblioteca padrao para microbenchmarking e medicao precisa de latencia e taxa de throughput em C++."
+}

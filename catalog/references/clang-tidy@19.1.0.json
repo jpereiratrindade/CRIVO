@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "clang-tidy",
+  "edition": "19.1.0",
+  "issuer": "LLVM",
+  "kind": "tool",
+  "title": "Clang-Tidy C++ Linter and Static Analysis Engine",
+  "status_at_registration": "active",
+  "url": "https://clang.llvm.org/extra/clang-tidy/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "LLVM Project"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Ferramenta de analise estatica baseada em AST para deteccao de bugs e reforco de boas praticas em C++."
+}

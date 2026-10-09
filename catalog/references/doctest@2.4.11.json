@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "doctest",
+  "edition": "2.4.11",
+  "issuer": "Viktor Kirilov",
+  "kind": "framework",
+  "title": "Doctest The Fastest Feature-Rich C++ Single-Header Testing Framework",
+  "status_at_registration": "active",
+  "url": "https://github.com/doctest/doctest",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Viktor Kirilov"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Framework ultrarrapido de testes unitarios em C++ header-only."
+}

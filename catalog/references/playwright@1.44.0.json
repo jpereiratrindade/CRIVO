@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "playwright",
+  "edition": "1.44.0",
+  "issuer": "Microsoft",
+  "kind": "framework",
+  "title": "Playwright End-to-End Testing Framework",
+  "status_at_registration": "active",
+  "url": "https://playwright.dev/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Microsoft Corporation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Framework para automacao e teste ponta-a-ponta de aplicacoes Web multiplataforma."
+}

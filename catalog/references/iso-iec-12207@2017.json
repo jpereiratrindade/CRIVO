@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-12207",
+  "edition": "2017",
+  "issuer": "ISO/IEC/IEEE",
+  "kind": "standard",
+  "title": "Systems and Software Engineering — Software Life Cycle Processes",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/63711.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC/IEEE Copyright Applies"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Processos de ciclo de vida de software, incluindo verificacao, validacao e garantia da qualidade."
+}

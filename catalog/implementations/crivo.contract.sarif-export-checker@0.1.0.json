@@ -1,0 +1,19 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.contract.sarif-export-checker",
+  "version": "0.1.0",
+  "implements": "crivo.contract.sarif-export@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "boost_json",
+    "crivo_core"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_check_sarif_export",
+  "notes": "Test harness para verificacao de saida em formato SARIF v2.1.0."
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "cppcheck",
+  "edition": "2.14.0",
+  "issuer": "Cppcheck Team",
+  "kind": "tool",
+  "title": "Cppcheck — Static Analysis Tool for C/C++ Code",
+  "status_at_registration": "published",
+  "url": "https://cppcheck.sourceforge.io/",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Cppcheck GPL-3.0. Stored as metadata and static analysis rule definitions."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Analisador estático rigoroso para detecção de comportamento indefinido, vazamentos de recursos e violações de regras CERT."
+}

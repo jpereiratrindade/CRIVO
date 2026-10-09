@@ -1,0 +1,42 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.contract.sarif-export",
+  "version": "0.1.0",
+  "title": "Verificacao de Exportacao em Formato Padrao SARIF 2.1.0",
+  "description": "Valida se o exportador SARIF do CRIVO gera schemas compativeis com OASIS SARIF 2.1.0.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "sarif",
+      "edition": "2.1.0",
+      "relation": "direct_reference",
+      "interpretation_limit": "Schema OASIS SARIF v2.1.0."
+    }
+  ],
+  "category": "interoperability",
+  "subcategory": "report_export",
+  "techniques": [
+    "static-security-analysis"
+  ],
+  "level": "unit",
+  "purpose": "functional",
+  "risk": [
+    "report_corruption",
+    "incompatible_ci_tools"
+  ],
+  "preconditions": [
+    "sarif_exporter_ready"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "valid_sarif_v2_json",
+    "description": "Documento JSON emitido deve conter versao 2.1.0 e estrutura runs compativel com OASIS."
+  },
+  "implementation_refs": [
+    "crivo.contract.sarif-export-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:json_parser"
+  ],
+  "qualification": "candidate"
+}

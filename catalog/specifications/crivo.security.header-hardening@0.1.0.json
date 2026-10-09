@@ -1,0 +1,50 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.security.header-hardening",
+  "version": "0.1.0",
+  "title": "HTTP Security Header & CSP Hardening Verification",
+  "description": "Verifica a presença e conformidade estrita dos cabeçalhos de segurança (Content-Security-Policy, X-Content-Type-Options: nosniff, Cache-Control: no-store) em todas as respostas HTTP.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "owasp-asvs",
+      "edition": "5.0.0",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Verificação de conformidade com diretrizes de cabeçalhos de segurança do OWASP ASVS."
+    },
+    {
+      "id": "owasp-top10",
+      "edition": "2021",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Prevenção de injeção e falhas de configuração de segurança (Security Misconfiguration)."
+    }
+  ],
+  "category": "security",
+  "subcategory": "http_hardening",
+  "techniques": [
+    "negative-testing",
+    "static-security-analysis"
+  ],
+  "level": "integration",
+  "purpose": "security",
+  "risk": [
+    "xss_injection",
+    "mime_sniffing",
+    "cache_leakage"
+  ],
+  "preconditions": [
+    "server_listening_loopback"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "security_headers_present_and_strict",
+    "description": "Content-Security-Policy, X-Content-Type-Options e Cache-Control retornados estritamente em todas as rotas."
+  },
+  "implementation_refs": [
+    "crivo.security.header-hardening-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:http_server"
+  ],
+  "qualification": "candidate"
+}

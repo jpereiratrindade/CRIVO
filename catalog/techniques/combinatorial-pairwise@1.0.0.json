@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "combinatorial-pairwise",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Combinatorial Pairwise Testing (All-Pairs)",
+  "procedure_summary": "Gera conjuntos otimizados de testes cobrindo todas as combinacoes de 2 parametros com matriz ortogonal.",
+  "input_partitioning": "Matriz combinatoria N-dimensional de parametros de entrada.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:cli_args",
+    "capability:json_schema",
+    "capability:matrix_generator"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "direct_reference",
+      "interpretation_limit": "Secao 6.1.4 sobre Combinatorial Test Design Techniques."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

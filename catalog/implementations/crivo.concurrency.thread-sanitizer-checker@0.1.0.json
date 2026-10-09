@@ -1,0 +1,19 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.concurrency.thread-sanitizer-checker",
+  "version": "0.1.0",
+  "implements": "crivo.concurrency.thread-sanitizer@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "clang_tsan",
+    "sqlite3"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_check_concurrency_tsan",
+  "notes": "Verificador automatizado de data race com Clang ThreadSanitizer."
+}

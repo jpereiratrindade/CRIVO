@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "sei-cert-cpp",
+  "edition": "2016",
+  "issuer": "SEI/CMU",
+  "kind": "guide",
+  "title": "SEI CERT C++ Coding Standard: Rules for Developing Safe, Reliable, and Secure Systems",
+  "status_at_registration": "published",
+  "url": "https://wiki.sei.cmu.edu/confluence/display/cplusplus",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "Carnegie Mellon University SEI copyright applies. Stored strictly as catalog metadata."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Conjunto de regras normativas e diretrizes de codificação segura em C++ para prevenção de vulnerabilidades e comportamento indefinido."
+}

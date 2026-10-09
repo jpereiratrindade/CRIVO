@@ -1,0 +1,49 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.sqlite.wal.concurrency",
+  "version": "0.1.0",
+  "title": "SQLite WAL Multi-Reader Concurrency & Deadlock Resilience",
+  "description": "Verifica que múltiplas conexões de leitura simultâneas no modo WAL operam sem contenção de lock ou interferência em transações ativas.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "classifies_quality",
+      "interpretation_limit": "Avaliação de confiabilidade, tolerância a falhas e concorrência."
+    },
+    {
+      "id": "ieee-1012",
+      "edition": "2016",
+      "relation": "checks_requirement",
+      "interpretation_limit": "Critério de integridade V&V em operações transacionais de persistência."
+    }
+  ],
+  "category": "persistence",
+  "subcategory": "wal_concurrency",
+  "techniques": [
+    "decision-table-testing",
+    "thread-race-detection"
+  ],
+  "level": "unit",
+  "purpose": "concurrency",
+  "risk": [
+    "database_locked_error",
+    "read_write_starvation"
+  ],
+  "preconditions": [
+    "sqlite_wal_database_initialized"
+  ],
+  "oracle": {
+    "type": "invariant",
+    "id": "wal_concurrent_reads_success",
+    "description": "Leituras concorrentes completam com sucesso (SQLITE_OK) sem timeouts ou erros de busy."
+  },
+  "implementation_refs": [
+    "crivo.sqlite.wal-concurrency-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:sqlite"
+  ],
+  "qualification": "candidate"
+}

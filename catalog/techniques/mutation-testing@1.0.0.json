@@ -1,0 +1,27 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "mutation-testing",
+  "version": "1.0.0",
+  "family": "structure_based",
+  "name": "Mutation Testing (Fault Injection)",
+  "procedure_summary": "Introduz mutantes sintaticos no codigo-fonte para medir se os testes detectam as alteracoes deliberadas.",
+  "input_partitioning": "Operadores de mutacao aritmetica, logica, relacional e de atribuicao.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:mutation_engine",
+    "capability:unit_test_harness"
+  ],
+  "references": [
+    {
+      "id": "swebok",
+      "edition": "4.0.0",
+      "relation": "informed_by",
+      "interpretation_limit": "Capitulo de Test Adequacy e Mutation Testing."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

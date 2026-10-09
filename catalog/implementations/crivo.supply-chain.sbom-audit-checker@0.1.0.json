@@ -1,0 +1,18 @@
+{
+  "schema_version": "crivo.implementation/1.0.0",
+  "id": "crivo.supply-chain.sbom-audit-checker",
+  "version": "0.1.0",
+  "implements": "crivo.supply-chain.sbom-audit@0.1.0",
+  "adapter": "builtin",
+  "requires": [
+    "cyclonedx_parser"
+  ],
+  "execution_policy": {
+    "destructive": false,
+    "isolation": "process_isolated",
+    "network": "none"
+  },
+  "qualification": "candidate",
+  "entrypoint": "crivo_check_sbom_audit",
+  "notes": "Auditoria de manifesto SBOM e vulnerabilidades conhecidas."
+}

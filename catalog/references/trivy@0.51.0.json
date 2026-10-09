@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "trivy",
+  "edition": "0.51.0",
+  "issuer": "Aqua Security",
+  "kind": "tool",
+  "title": "Trivy Security Scanner for Containers, Filesystems and SBOMs",
+  "status_at_registration": "active",
+  "url": "https://trivy.dev/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Aqua Security Software Ltd."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Scanner de seguranca para deteccao de vulnerabilidades conhecidas em pacotes e arquivos SBOM."
+}

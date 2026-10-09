@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "metamorphic-testing",
+  "version": "1.0.0",
+  "family": "metamorphic",
+  "name": "Metamorphic Testing",
+  "procedure_summary": "Valida relacoes invariantes necessarias entre multiplas execucoes com entradas transformadas, contornando o problema do oraculo.",
+  "input_partitioning": "Entrada original e derivada via relacao metamorfica formal.",
+  "oracle_class": "invariant_preservation",
+  "applicability": [
+    "capability:json_parser",
+    "capability:search_engine",
+    "capability:data_pipeline"
+  ],
+  "references": [
+    {
+      "id": "swebok",
+      "edition": "4.0.0",
+      "relation": "informed_by",
+      "interpretation_limit": "Topico sobre resolucao do problema do oraculo de teste."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

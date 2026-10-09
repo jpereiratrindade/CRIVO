@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "jmeter",
+  "edition": "5.6.3",
+  "issuer": "Apache Software Foundation",
+  "kind": "tool",
+  "title": "Apache JMeter Application Performance and Load Tester",
+  "status_at_registration": "active",
+  "url": "https://jmeter.apache.org/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Apache Software Foundation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Ferramenta classica e robusta para testes de carga e estresse em servicos de rede e HTTP."
+}

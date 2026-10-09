@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "spdx",
+  "edition": "3.0.0",
+  "issuer": "Linux Foundation / ISO/IEC",
+  "kind": "specification",
+  "title": "Software Package Data Exchange (SPDX) Specification — ISO/IEC 5962:2021",
+  "status_at_registration": "published",
+  "url": "https://spdx.dev/specifications/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Linux Foundation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Padrao internacional ISO/IEC 5962:2021 para comunicacao de dados de pacotes de software."
+}

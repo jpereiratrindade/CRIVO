@@ -31,20 +31,12 @@
 - `schemas/implementation/1.0.0.schema.json`
 - `schemas/profile/1.0.0.schema.json`
 
-### 2.2 Lote Piloto de Registros (`catalog/`)
-- **Referências (`catalog/references/`):** 8 itens com metadados e declaração estrita de direitos:
-  - `iso-iec-25010@2023.json` (`metadata_only`, `license_review: required`)
-  - `iso-iec-ieee-29119-4@2021.json` (`metadata_only`, `license_review: required`)
-  - `cmake-ctest@4.3.0.json` (`permissive`, `license_review: verified_open`)
-  - `googletest@1.16.0.json` (`permissive`, `license_review: verified_open`)
-  - `clang-addresssanitizer@19.1.0.json` (`permissive`, `license_review: verified_open`)
-  - `clang-ubsan@19.1.0.json` (`permissive`, `license_review: verified_open`)
-  - `w3c-wcag@2.2.json` (`open_access`, `license_review: verified_open`)
-  - `owasp-asvs@5.0.0.json` (`open_access`, `license_review: verified_open`)
-- **Técnicas (`catalog/techniques/`):** 4 itens (`state-transition@1.0.0`, `negative-testing@1.0.0`, `boundary-value-analysis@1.0.0`, `dynamic-memory-sanitization@1.0.0`).
-- **Especificações (`catalog/specifications/`):** 3 itens (`crivo.sqlite.transaction.rollback@0.1.0`, `crivo.catalog.schema-strict@0.1.0`, `crivo.http.contract-readonly@0.1.0`).
-- **Implementações candidatas (`catalog/implementations/`):** 3 itens (`crivo.sqlite.rollback-check@0.1.0`, `crivo.registry.strict-validator@0.1.0`, `crivo.http.readonly-checker@0.1.0`).
-- **Perfis (`catalog/profiles/`):** 1 item (`pilot-e1.json`).
+### 2.2 Repertório Internacional Completo (`catalog/`)
+- **Referências (`catalog/references/`):** 49 fontes internacionais padronizadas cobrindo ISO/IEC, IEEE, NIST, OWASP, MITRE CWE/CAPEC, SWEBOK, MISRA, AUTOSAR, W3C, Clang/LLVM, Valgrind, GNU Coverage, SonarQube, Playwright, Cypress, JMeter, Trivy, Semgrep, AFL++, Doctest, Google Benchmark, Catch2, etc.
+- **Técnicas de Teste (`catalog/techniques/`):** 19 técnicas fundamentais (Equivalence Partitioning, Boundary Value Analysis, Decision Table, State Transition, Negative Testing, Dynamic Memory Sanitization, Thread Race Detection, Static Security Analysis, Fuzzing Mutation, Statement Coverage, Branch Condition MC/DC, Mutation Testing, Combinatorial Pairwise, Metamorphic Testing, Property-Based Testing, Chaos Fault Injection, Load Stress Testing, Accessibility Audit, SBOM Vulnerability Scanning).
+- **Especificações (`catalog/specifications/`):** 11 especificações rigorosas com oráculos formais.
+- **Implementações candidatas (`catalog/implementations/`):** 11 implementações autônomas.
+- **Perfis de Verificação (`catalog/profiles/`):** 4 perfis (`pilot-e1.json`, `extended-qual.json`, `security-iso.json`, `complete-international-benchmark.json`).
 - **Catálogo legado (`catalog/tests.json`):** Preservado intacto para total retrocompatibilidade da v0.1.0.
 
 ### 2.3 Módulo C++ de Registro e Validação Estrita (`src/registry/`)

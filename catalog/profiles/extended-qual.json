@@ -1,0 +1,36 @@
+{
+  "schema_version": "crivo.profile/1.0.0",
+  "id": "extended-qual",
+  "version": "1.0.0",
+  "title": "Extended ISO/IEC 25010 & 29119 Quality Profile",
+  "description": "Perfil de avaliação abrangente de qualidade de software, concorrência e integridade transacional.",
+  "selection": {
+    "categories": [
+      "persistence",
+      "validation",
+      "interface",
+      "governance"
+    ],
+    "levels": [
+      "unit",
+      "component",
+      "integration"
+    ],
+    "purposes": [
+      "regression",
+      "conformance",
+      "diagnostic"
+    ],
+    "include_specs": [
+      "crivo.sqlite.transaction.rollback@0.1.0",
+      "crivo.catalog.schema-strict@0.1.0",
+      "crivo.sqlite.wal.concurrency@0.1.0",
+      "crivo.memory.sha256-provenance@0.1.0"
+    ],
+    "exclude_specs": []
+  },
+  "policy": {
+    "fail_fast": false,
+    "allow_unqualified": true
+  }
+}

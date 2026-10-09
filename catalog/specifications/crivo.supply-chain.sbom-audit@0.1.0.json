@@ -1,0 +1,48 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.supply-chain.sbom-audit",
+  "version": "0.1.0",
+  "title": "Auditoria Automatizada de SBOM e Vulnerabilidades de Dependencias",
+  "description": "Valida inventario de dependencias contra vulnerabilidades conhecidas em conformidade com NIST SSDF.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "cyclonedx",
+      "edition": "1.6.0",
+      "relation": "direct_reference",
+      "interpretation_limit": "Especificacao CycloneDX SBOM."
+    },
+    {
+      "id": "nist-sp-800-218",
+      "edition": "1.1.0",
+      "relation": "informed_by",
+      "interpretation_limit": "Pratica PW.4 NIST SSDF."
+    }
+  ],
+  "category": "security",
+  "subcategory": "supply_chain",
+  "techniques": [
+    "sbom-vulnerability-scanning"
+  ],
+  "level": "system",
+  "purpose": "security",
+  "risk": [
+    "vulnerable_third_party_package",
+    "supply_chain_attack"
+  ],
+  "preconditions": [
+    "sbom_manifest_generated"
+  ],
+  "oracle": {
+    "type": "predicate",
+    "id": "zero_critical_cve",
+    "description": "Zero vulnerabilidades criticas ou de alta severidade no relatorio de auditoria."
+  },
+  "implementation_refs": [
+    "crivo.supply-chain.sbom-audit-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:cyclonedx"
+  ],
+  "qualification": "candidate"
+}

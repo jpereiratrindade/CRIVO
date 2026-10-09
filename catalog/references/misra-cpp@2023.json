@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "misra-cpp",
+  "edition": "2023",
+  "issuer": "MISRA",
+  "kind": "standard",
+  "title": "MISRA C++:2023 Guidelines for the use of the C++20 language in critical systems",
+  "status_at_registration": "published",
+  "url": "https://www.misra.org.uk/",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "The MISRA Consortium Limited"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Diretrizes formais de seguranca e confiabilidade para programacao em C++ moderno em sistemas criticos."
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "open-telemetry",
+  "edition": "1.30.0",
+  "issuer": "CNCF",
+  "kind": "specification",
+  "title": "OpenTelemetry Specification for Tracing, Metrics and Logs",
+  "status_at_registration": "active",
+  "url": "https://opentelemetry.io/docs/specs/otel/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Cloud Native Computing Foundation"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Especificacao aberta para instrumentacao e observabilidade de software."
+}

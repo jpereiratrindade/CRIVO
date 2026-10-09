@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "k6-performance",
+  "edition": "0.50.0",
+  "issuer": "Grafana Labs",
+  "kind": "tool",
+  "title": "Grafana k6 Modern Load and Performance Testing Engine",
+  "status_at_registration": "active",
+  "url": "https://k6.io/docs/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "Grafana Labs"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Motor moderno de testes de desempenho, carga e estresse programavel."
+}

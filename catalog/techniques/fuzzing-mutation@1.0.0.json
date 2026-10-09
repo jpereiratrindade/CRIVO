@@ -1,0 +1,27 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "fuzzing-mutation",
+  "version": "1.0.0",
+  "family": "fuzzing",
+  "name": "Coverage-Guided Mutation Fuzzing",
+  "procedure_summary": "Gera entradas aleatórias e mutações sistemáticas de payloads válidos para estressar analisadores de sintaxe e rotinas de deserialização.",
+  "input_partitioning": "Streams de bytes malformados, payloads truncados, mutações de cabeçalhos e buffers limites.",
+  "oracle_class": "crash_or_fault_freedom",
+  "applicability": [
+    "capability:json_parser",
+    "capability:posix_env"
+  ],
+  "references": [
+    {
+      "id": "llvm-libfuzzer",
+      "edition": "19.1.0",
+      "relation": "tooling",
+      "interpretation_limit": "Mapeamento das técnicas de fuzzing guiado por cobertura do libFuzzer."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

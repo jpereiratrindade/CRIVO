@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "equivalence-partitioning",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Equivalence Partitioning (EP)",
+  "procedure_summary": "Divide o domínio de entrada em partições de dados válidas e inválidas onde o comportamento do sistema é considerado equivalente.",
+  "input_partitioning": "Subconjuntos disjuntos de entradas válidas e classes de equivalência de entradas anômalas.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:json_parser",
+    "capability:cli",
+    "capability:sqlite"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "derived_from",
+      "interpretation_limit": "Aplicação metodológica autoral do particionamento de equivalência da ISO 29119-4."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

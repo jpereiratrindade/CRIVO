@@ -234,9 +234,24 @@ ExecutionResult BubblewrapDriver::execute(
         "--tmpfs", "/tmp"
     };
 
-    if (fs::exists("/lib")) bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/lib", "/lib"});
-    if (fs::exists("/lib64")) bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/lib64", "/lib64"});
-    if (fs::exists("/bin")) bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/bin", "/bin"});
+    if (fs::is_symlink("/lib")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--symlink", "usr/lib", "/lib"});
+    } else if (fs::exists("/lib")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/lib", "/lib"});
+    }
+
+    if (fs::is_symlink("/lib64")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--symlink", "usr/lib64", "/lib64"});
+    } else if (fs::exists("/lib64")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/lib64", "/lib64"});
+    }
+
+    if (fs::is_symlink("/bin")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--symlink", "usr/bin", "/bin"});
+    } else if (fs::exists("/bin")) {
+        bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/bin", "/bin"});
+    }
+
     if (fs::exists("/etc")) bwrap_cmd.insert(bwrap_cmd.end(), {"--ro-bind", "/etc", "/etc"});
 
     // Mount target readonly

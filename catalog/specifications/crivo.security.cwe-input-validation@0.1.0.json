@@ -1,0 +1,49 @@
+{
+  "schema_version": "crivo.test-spec/1.0.0",
+  "id": "crivo.security.cwe-input-validation",
+  "version": "0.1.0",
+  "title": "Validacao Rigorosa de Entrada Contra Injecoes (CWE-20 / CWE-89)",
+  "description": "Garante rejeicao expressa de entradas com directory traversal, SQL injection ou bytes nulos.",
+  "source": "crivo-original",
+  "references": [
+    {
+      "id": "mitre-cwe",
+      "edition": "4.14.0",
+      "relation": "direct_reference",
+      "interpretation_limit": "Mitigacao de CWE-20 e CWE-89."
+    },
+    {
+      "id": "owasp-top10",
+      "edition": "2021",
+      "relation": "checks_requirement",
+      "interpretation_limit": "A03:2021 Injection."
+    }
+  ],
+  "category": "security",
+  "subcategory": "input_validation",
+  "techniques": [
+    "negative-testing",
+    "boundary-value-analysis"
+  ],
+  "level": "integration",
+  "purpose": "security",
+  "risk": [
+    "unauthorized_filesystem_access",
+    "sql_injection"
+  ],
+  "preconditions": [
+    "api_service_running"
+  ],
+  "oracle": {
+    "type": "status_code",
+    "id": "bad_request_or_rejected",
+    "description": "Requisicoes contendo payloads maliciosos recebem HTTP 400 Bad Request imediatamente."
+  },
+  "implementation_refs": [
+    "crivo.security.cwe-input-validation-checker@0.1.0"
+  ],
+  "applicability": [
+    "capability:http_endpoint"
+  ],
+  "qualification": "candidate"
+}

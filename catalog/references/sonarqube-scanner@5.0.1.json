@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "sonarqube-scanner",
+  "edition": "5.0.1",
+  "issuer": "SonarSource",
+  "kind": "tool",
+  "title": "SonarQube Quality Gate and Code Quality Scanner",
+  "status_at_registration": "active",
+  "url": "https://www.sonarsource.com/products/sonarqube/",
+  "rights": {
+    "distribution": "permissive",
+    "license_review": "verified_open",
+    "attribution": "SonarSource S.A."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Plataforma lider para inspecao continua de qualidade de codigo e portas de qualidade (Quality Gates)."
+}

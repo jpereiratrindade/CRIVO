@@ -1,0 +1,33 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "accessibility-audit",
+  "version": "1.0.0",
+  "family": "specification_based",
+  "name": "Automated and Heuristic Accessibility Audit",
+  "procedure_summary": "Auditoria de interfaces Web segundo os criterios de sucesso WCAG 2.2 e compatibilidade WAI-ARIA.",
+  "input_partitioning": "Estrutura DOM, contraste de cores, suporte a teclado e atributos semanticos ARIA.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:html_dom",
+    "capability:wcag_rules"
+  ],
+  "references": [
+    {
+      "id": "w3c-wcag",
+      "edition": "2.2",
+      "relation": "direct_reference",
+      "interpretation_limit": "Diretrizes WCAG 2.2 Nivel AA."
+    },
+    {
+      "id": "w3c-wai-aria",
+      "edition": "1.2",
+      "relation": "derived_from",
+      "interpretation_limit": "Papeis e atributos ARIA."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

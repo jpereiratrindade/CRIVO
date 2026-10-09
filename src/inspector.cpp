@@ -304,10 +304,10 @@ CheckSummary execute_check(const CheckOptions& opts) {
         }
 
         // Execute test inside Sandbox
-        std::vector<std::string> test_cmd = {"/bin/true"};
-        if (test_case.adapter == "crivo.builtin") {
-            test_cmd = {"/bin/echo", "CRIVO Builtin Verification PASS"};
-        } else if (test_case.adapter == "crivo.adapter.ctest") {
+        std::vector<std::string> test_cmd = {"true"};
+        if (test_case.adapter == "crivo.builtin" || test_case.adapter == "builtin") {
+            test_cmd = {"echo", "CRIVO Builtin Verification PASS"};
+        } else if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
             test_cmd = {"ctest", "--show-only"};
         }
 

@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-ieee-29119-3",
+  "edition": "2021",
+  "issuer": "ISO/IEC/IEEE",
+  "kind": "testing_standard",
+  "title": "Software and systems engineering — Software testing — Part 3: Test documentation",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/79429.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC/IEEE copyright applies. Stored strictly as catalog metadata."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Padrões de artefatos de documentação de teste, planos, especificações de projeto de teste e relatórios de evidência."
+}

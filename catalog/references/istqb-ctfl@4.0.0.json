@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "istqb-ctfl",
+  "edition": "4.0.0",
+  "issuer": "ISTQB",
+  "kind": "taxonomy",
+  "title": "ISTQB Certified Tester Foundation Level Syllabus",
+  "status_at_registration": "published",
+  "url": "https://www.istqb.org/certifications/certified-tester-foundation-level",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "International Software Testing Qualifications Board"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Taxonomia e vocabulario internacional de engenharia de testes de software."
+}

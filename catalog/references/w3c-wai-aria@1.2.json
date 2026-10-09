@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "w3c-wai-aria",
+  "edition": "1.2",
+  "issuer": "W3C",
+  "kind": "specification",
+  "title": "Accessible Rich Internet Applications (WAI-ARIA) 1.2",
+  "status_at_registration": "published",
+  "url": "https://www.w3.org/TR/wai-aria-1.2/",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "World Wide Web Consortium"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Especificacao semantica para acessibilidade de aplicacoes Web ricas."
+}

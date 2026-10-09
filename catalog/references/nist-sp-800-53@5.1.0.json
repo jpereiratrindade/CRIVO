@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "nist-sp-800-53",
+  "edition": "5.1.0",
+  "issuer": "NIST",
+  "kind": "standard",
+  "title": "Security and Privacy Controls for Information Systems and Organizations",
+  "status_at_registration": "published",
+  "url": "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "US National Institute of Standards and Technology"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Controles de seguranca e privacidade para sistemas de informacao."
+}

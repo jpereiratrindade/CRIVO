@@ -1,0 +1,28 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "chaos-fault-injection",
+  "version": "1.0.0",
+  "family": "dynamic_analysis",
+  "name": "Chaos and Dynamic Fault Injection",
+  "procedure_summary": "Injeta falhas dinamicas de disco, memoria, rede ou interrupcoes para validar tolerancia e recuperabilidade.",
+  "input_partitioning": "Falhas de E/S, corrupcao de pacotes, lentidao artificial e sinais de kill.",
+  "oracle_class": "crash_or_fault_freedom",
+  "applicability": [
+    "capability:sqlite_wal",
+    "capability:http_server",
+    "capability:posix_signals"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-25010",
+      "edition": "2023",
+      "relation": "classifies_quality",
+      "interpretation_limit": "Caracteristica de Confiabilidade e Tolerancia a Falhas."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

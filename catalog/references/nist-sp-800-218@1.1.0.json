@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "nist-sp-800-218",
+  "edition": "1.1.0",
+  "issuer": "NIST",
+  "kind": "standard",
+  "title": "Secure Software Development Framework (SSDF) Version 1.1",
+  "status_at_registration": "published",
+  "url": "https://csrc.nist.gov/publications/detail/sp/800-218/final",
+  "rights": {
+    "distribution": "open_access",
+    "license_review": "verified_open",
+    "attribution": "US National Institute of Standards and Technology"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Framework de desenvolvimento de software seguro e mitigacao de riscos de supply-chain."
+}

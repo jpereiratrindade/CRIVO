@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "iso-iec-15408-1",
+  "edition": "2022",
+  "issuer": "ISO/IEC",
+  "kind": "standard",
+  "title": "Common Criteria for Information Technology Security Evaluation — Part 1: Introduction and general model",
+  "status_at_registration": "published",
+  "url": "https://www.iso.org/standard/76449.html",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "ISO/IEC Copyright Applies"
+  },
+  "catalog_level": "inventoried",
+  "notes": "Criterios Comuns (Common Criteria) para avaliacao de seguranca de TI."
+}

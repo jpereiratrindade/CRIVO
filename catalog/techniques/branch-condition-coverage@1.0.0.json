@@ -1,0 +1,33 @@
+{
+  "schema_version": "crivo.technique/1.0.0",
+  "id": "branch-condition-coverage",
+  "version": "1.0.0",
+  "family": "structure_based",
+  "name": "Branch and Condition Decision Coverage (MC/DC)",
+  "procedure_summary": "Avalia todas as ramificacoes de decisao e resultados booleanos independentes para garantir cobertura estrita.",
+  "input_partitioning": "Combinacoes de condicoes logicas verdadeiras e falsas afetando o resultado da decisao.",
+  "oracle_class": "deterministic_predicate",
+  "applicability": [
+    "capability:gcov",
+    "capability:safety_critical_audit"
+  ],
+  "references": [
+    {
+      "id": "iso-iec-ieee-29119-4",
+      "edition": "2021",
+      "relation": "direct_reference",
+      "interpretation_limit": "Secao 6.2.3 sobre Branch Condition e MC/DC."
+    },
+    {
+      "id": "ieee-1012",
+      "edition": "2016",
+      "relation": "derived_from",
+      "interpretation_limit": "Verificacao e validacao independente de nivel de integridade critico."
+    }
+  ],
+  "rights": {
+    "author": "CRIVO Core Team",
+    "distribution": "open_access",
+    "license_review": "verified_open"
+  }
+}

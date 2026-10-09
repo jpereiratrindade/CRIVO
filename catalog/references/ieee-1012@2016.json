@@ -1,0 +1,17 @@
+{
+  "schema_version": "crivo.reference/1.0.0",
+  "id": "ieee-1012",
+  "edition": "2016",
+  "issuer": "IEEE",
+  "kind": "testing_standard",
+  "title": "IEEE Standard for System, Software, and Hardware Verification and Validation",
+  "status_at_registration": "published",
+  "url": "https://standards.ieee.org/ieee/1012/6072/",
+  "rights": {
+    "distribution": "metadata_only",
+    "license_review": "required",
+    "attribution": "IEEE copyright applies. Stored strictly as catalog metadata."
+  },
+  "catalog_level": "inventoried",
+  "notes": "Padrão unificado internacional para processos rigorosos de Verificação e Validação (V&V) em sistemas críticos e de missão."
+}

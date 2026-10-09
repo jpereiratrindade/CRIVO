@@ -315,26 +315,50 @@ CheckSummary execute_check(const CheckOptions& opts) {
     sbx_config.backend = btype;
     sbx_config.limits.timeout = std::chrono::seconds(opts.timeout_seconds);
 
-    // Validação de disponibilidade de sandbox quando exigida
-    if (opts.isolation == "sandbox") {
-        sandbox::BubblewrapDriver bwrap_drv;
-        sandbox::PodmanDriver podman_drv;
-        if (opts.backend == "bubblewrap" && !bwrap_drv.is_available()) {
+    // Validação estrita de sandbox e qualificação pré-execução quando exigida
+    bool sandbox_qualified_enforced = false;
+    if (opts.isolation == "sandbox" || opts.backend == "bubblewrap" || opts.backend == "podman") {
+        auto qres = sandbox::qualify_backend(btype, sbx_workspace / "qual_probe");
+        if (!qres.passed) {
             summary.overall_status = "BLOCKED";
             summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
+
+            // Grava relatório estruturado comprovando a causa do bloqueio
+            sandbox::ExecutionResult blocked_sbx;
+            blocked_sbx.exit_code = -1;
+            blocked_sbx.isolation_driver = qres.backend;
+            blocked_sbx.isolation_status = "BLOCKED";
+            blocked_sbx.capabilities_enforced = qres.capabilities_enforced;
+
+            fs::path sbx_report_file = evidence_path / "sandbox-report.json";
+            {
+                std::ofstream rf(sbx_report_file);
+                rf << sandbox::generate_sandbox_report_json(sbx_config, blocked_sbx, instance_id);
+            }
+
+            fs::path ev_file = evidence_path / "evidence.json";
+            {
+                boost::json::object ev_pkg;
+                ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
+                ev_pkg["evidence_id"] = summary.request_id;
+                ev_pkg["project_id"] = summary.project_id;
+                ev_pkg["status"] = "BLOCKED";
+                ev_pkg["cause"] = "Sandbox qualification failed: backend cannot enforce required kernel isolation";
+                std::ofstream ef(ev_file);
+                ef << boost::json::serialize(ev_pkg);
+            }
+
+            summary.evidence_path = ev_file.string();
+            summary.evidence_sha256 = calculate_file_sha256(ev_file);
             return summary;
         }
-        if (opts.backend == "podman" && !podman_drv.is_available()) {
-            summary.overall_status = "BLOCKED";
-            summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
-            return summary;
-        }
+        sandbox_qualified_enforced = true;
     }
 
     std::string start_time = generate_utc_timestamp();
     auto start_steady = std::chrono::steady_clock::now();
-    std::string observed_isolation = "NOT_REQUIRED";
-    std::string observed_driver = "none";
+    std::string observed_isolation = sandbox_qualified_enforced ? "ENFORCED" : "NOT_REQUIRED";
+    std::string observed_driver = sandbox_qualified_enforced ? ((btype == sandbox::BackendType::Bubblewrap) ? "bubblewrap" : (btype == sandbox::BackendType::Podman ? "podman" : "host_isolated")) : "none";
 
     // 5. Execute tests in Sandbox com oráculos reais
     std::ostringstream junit_xml;

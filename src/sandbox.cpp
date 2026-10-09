@@ -296,9 +296,12 @@ ExecutionResult BubblewrapDriver::execute(
         "ro_target_binding",
         "rw_workspace_binding",
         "unshare_all",
+        "unshare_pid",
+        "unshare_user",
+        "unshare_ipc",
+        "unshare_uts",
         "tmpfs_tmp",
         "die_with_parent",
-        "rlimit_nproc",
         "rlimit_as"
     };
     if (!config.enable_network) {
@@ -449,8 +452,12 @@ std::string generate_sandbox_report_json(
     if (!config.target_ro_path.empty()) ro_arr.push_back(boost::json::value(config.target_ro_path.string()));
     report["ro_mounts"] = ro_arr;
 
+    boost::json::array rw_arr;
+    if (!config.workspace_rw_path.empty()) rw_arr.push_back(boost::json::value(config.workspace_rw_path.string()));
+    report["rw_bind_mounts"] = rw_arr;
+
     boost::json::array tmpfs_arr;
-    if (!config.workspace_rw_path.empty()) tmpfs_arr.push_back(boost::json::value(config.workspace_rw_path.string()));
+    tmpfs_arr.push_back(boost::json::value("/tmp"));
     report["tmpfs_mounts"] = tmpfs_arr;
 
     boost::json::object lim;
@@ -547,13 +554,18 @@ SandboxQualificationResult qualify_backend(BackendType backend, const fs::path& 
         res.capabilities_enforced = {
             "ro_target_binding",
             "rw_workspace_binding",
-            "unshare_net",
             "unshare_all",
+            "unshare_pid",
+            "unshare_user",
+            "unshare_ipc",
+            "unshare_uts",
             "tmpfs_tmp",
             "die_with_parent",
-            "rlimit_nproc",
             "rlimit_as"
         };
+        if (!cfg.enable_network) {
+            res.capabilities_enforced.push_back("unshare_net");
+        }
     } else if (res.backend == "podman") {
         res.capabilities_enforced = {
             "ro_target_volume",
@@ -563,7 +575,6 @@ SandboxQualificationResult qualify_backend(BackendType backend, const fs::path& 
         };
     } else {
         res.capabilities_enforced = {
-            "rlimit_nproc",
             "rlimit_as"
         };
     }

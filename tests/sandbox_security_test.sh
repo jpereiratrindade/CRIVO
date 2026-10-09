@@ -25,8 +25,19 @@ echo "$QUAL_JSON" | grep -q '"timeout_enforcement"' || {
 }
 
 echo "=== [Gate E13] Teste 2: Prova de Falha Segura (Fail-Closed) com Backend Inexistente ==="
-OUT=$(! "$CRIVO_BIN" check --target "$CATALOG_DIR" --profile pilot-e1 --backend backend_fantasma_xyz --isolation sandbox --catalog "$CATALOG_DIR" 2>&1)
-echo "Retorno: $OUT"
+set +e
+OUT=$("$CRIVO_BIN" check --target "$CATALOG_DIR" --profile pilot-e1 --backend backend_fantasma_xyz --isolation sandbox --catalog "$CATALOG_DIR" 2>&1)
+RC=$?
+set -e
+echo "Retorno (rc=$RC): $OUT"
+if [[ $RC -ne 2 ]]; then
+  echo "FALHA: Execucao com backend inexistente deveria retornar exit code 2, retornou $RC"
+  exit 1
+fi
+echo "$OUT" | grep -q 'BLOCKED' || {
+  echo "FALHA: Mensagem de erro nao indicou estado BLOCKED: $OUT"
+  exit 1
+}
 
 echo "=== [Gate E13] Teste 3: Relatório de Sandbox com Garantias Enforçadas ==="
 EVID_DIR="$BUILD_DIR/e13_evidence"
@@ -34,16 +45,27 @@ rm -rf "$EVID_DIR"
 "$CRIVO_BIN" check --target "$CATALOG_DIR" --profile pilot-e1 --backend bubblewrap --catalog "$CATALOG_DIR" --evidence-dir "$EVID_DIR" --db "$BUILD_DIR/e13.db" --json || true
 
 REPORT_FILE=$(find "$EVID_DIR" -name "sandbox-report.json" | head -1)
-if [[ -f "$REPORT_FILE" ]]; then
-  grep -q '"schema_version":"crivo.sandbox-report/1.1.0"' "$REPORT_FILE" || {
-    echo "FALHA: Schema invalido no sandbox-report.json"
-    exit 1
-  }
-  grep -q '"capabilities_enforced"' "$REPORT_FILE" || {
-    echo "FALHA: capabilities_enforced ausente no sandbox-report.json"
-    exit 1
-  }
+if [[ -z "$REPORT_FILE" || ! -f "$REPORT_FILE" ]]; then
+  echo "FALHA: sandbox-report.json obrigatorio nao foi gerado na evidencia!"
+  exit 1
 fi
+
+grep -q '"schema_version":"crivo.sandbox-report/1.1.0"' "$REPORT_FILE" || {
+  echo "FALHA: Schema invalido no sandbox-report.json"
+  exit 1
+}
+grep -q '"capabilities_enforced"' "$REPORT_FILE" || {
+  echo "FALHA: capabilities_enforced ausente no sandbox-report.json"
+  exit 1
+}
+grep -q '"rw_bind_mounts"' "$REPORT_FILE" || {
+  echo "FALHA: rw_bind_mounts ausente no sandbox-report.json"
+  exit 1
+}
+grep -q '"tmpfs_mounts"' "$REPORT_FILE" || {
+  echo "FALHA: tmpfs_mounts ausente no sandbox-report.json"
+  exit 1
+}
 
 echo "=== Gate E13: Sandbox de Seguranca Auditado e Qualificado com Sucesso ==="
 exit 0

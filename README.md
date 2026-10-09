@@ -102,13 +102,17 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
 ## Referências de arquitetura e decisões
 
 - [`docs/CRIVO-001_v0.1.0.md`](docs/CRIVO-001_v0.1.0.md) e [`docs/ROADMAP.md`](docs/ROADMAP.md)
-- [`docs/CRIVO-DEV-001_v0.2.0.md`](docs/CRIVO-DEV-001_v0.2.0.md) e [`docs/CRIVO-PROJ-001_v0.2.0.md`](docs/CRIVO-PROJ-001_v0.2.0.md)
+- [`docs/CRIVO-DEV-001_v0.2.0.md`](docs/CRIVO-DEV-001_v0.2.0.md), [`docs/CRIVO-DEV-002_v0.3.0.md`](docs/CRIVO-DEV-002_v0.3.0.md) e [`docs/CRIVO-PROJ-001_v0.2.0.md`](docs/CRIVO-PROJ-001_v0.2.0.md)
 - Decisões de Arquitetura:
   - [ADR-0001 — Evolução incremental do catálogo v0.1.0](docs/adr/ADR-0001-evolucao-do-catalogo.md)
   - [ADR-0002 — Validação estrita de schemas e integridade referencial com Boost.JSON](docs/adr/ADR-0002-validador-estrito-e-resolucao-referencial.md)
   - [ADR-0003 — Resolução de perfis e avaliação de aplicabilidade com política de falha fechada](docs/adr/ADR-0003-resolucao-de-perfis-e-aplicabilidade.md)
   - [ADR-0004 — Trilha de auditoria append-only com eventos de ciclo de vida e digest SHA-256](docs/adr/ADR-0004-eventos-de-ciclo-de-vida-e-auditoria.md)
   - [ADR-0005 — Adaptador CTest para descoberta e execução verificável com fixture sintética](docs/adr/ADR-0005-adaptador-ctest-e-execucao-verificavel.md)
+  - [ADR-0006 — Piloto TRAMA em modo shadow](docs/adr/ADR-0006-piloto-trama-shadow.md)
+  - [ADR-0007 — Verificação externa CRIVO-native](docs/adr/ADR-0007-verificacao-externa-crivo-native.md)
+  - [ADR-0008 — Inversão do fluxo de solicitação e independência tecnológica](docs/adr/ADR-0008-inversao-de-fluxo-verificacao-sob-demanda.md)
+  - [ADR-0009 — Subsistema de sandboxes efêmeras e isolamento por desenho](docs/adr/ADR-0009-subsistema-sandboxes-efemeras.md)
 - Relatórios Factuais de Evidência:
   - [E0 — Baseline v0.1.0](docs/evidence/E0-baseline-2026-10-09.md)
   - [E1 — Validação Estrita do Repertório Internacional](docs/evidence/E1-registry-validation-2026-10-09.md)

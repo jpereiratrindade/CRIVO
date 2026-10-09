@@ -29,15 +29,19 @@
 - [ ] Sandboxing de kernel, recursos e rede reforçado para projetos externos
 - [ ] Segundo projeto-piloto: ELO (Raspberry Pi / offline)
 
-## v0.3.0 · Resiliência e federação
+## v0.3.0 · Independência, Verificação sob Demanda e Sandboxes Efêmeras (CRIVO-DEV-002)
 
-- [ ] Segundo projeto-piloto real: ELO
-- [ ] Sandboxes segregadas e execução distribuída com agente
-- [ ] Diagnóstico de regressões ao longo de versões
-- [ ] Projeções de resultados governadas pela fronteira SisTer
-- [ ] Contrato de evidência com provenance e estado temporal
-- [ ] Acessibilidade revisada com testes manuais e automatizados
+- [x] **ADR-0008**: Inversão do fluxo de solicitação e independência tecnológica dos participantes
+- [x] **ADR-0009**: Subsistema de sandboxes efêmeras e isolamento por desenho
+- [ ] **E1 — Preservação**: Manter 100% das capacidades operacionais v0.1/v0.2 e integridade da suíte de 38 testes
+- [ ] **E2 — Inversão do fluxo**: Implementar CLI `crivo check` para solicitação sob demanda pelo desenvolvimento
+- [ ] **E3 — Independência**: Oráculos CRIVO-native e adaptadores CLI sem dependência de CTest/CMake no participante
+- [ ] **E4 — Isolamento**: Subsistema de Sandboxes efêmeras com backends Bubblewrap e Podman rootless no Linux
+- [ ] **E5 — Evidências**: Ampliação de telemetria, consumo de recursos e proveniência estrita
+- [ ] **E6 — Piloto TRAMA-RS**: Fluxo completo sob demanda em sandbox para o TRAMA-RS
+- [ ] **E7 — Interface SisTer**: Acompanhamento, histórico de sandboxes e diagnósticos no dashboard Web
 
 ## v1.0.0 · Critérios de maturidade, não promessa
 
 Somente considerar após critérios independentes de segurança, desempenho, acessibilidade, compatibilidade C++26, recuperação, integridade de evidência e integração multiplataforma serem demonstrados.
+

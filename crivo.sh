@@ -58,6 +58,8 @@ Uso: ./crivo.sh [comando]
   import      Importa catálogo internacional para persistência SQLite
   plan        Gera e exibe o plano de teste resolvido para o perfil
   check       Executa verificação sob demanda em sandbox efêmera (CRIVO-DEV-002)
+  memory-record <arquivo> Registra experiência técnica na memória federada (ADR-0010)
+  memory-query [termo]   Consulta experiências transversais e evidências (ADR-0010)
   init        Inicializa banco local legado
   run         Executa perfil core
   runs        Lista execuções registradas
@@ -77,7 +79,7 @@ EOF
 case "$COMMAND" in
   up|all)
     build
-    printf '\n=== [1/5] Executando CTest (41 testes) ===\n'
+    printf '\n=== [1/5] Executando CTest (46 testes) ===\n'
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     printf '\n=== [2/5] Validando Catálogo Estrito ===\n'
     "$BUILD_DIR/crivo" registry validate --dir catalog
@@ -108,6 +110,15 @@ case "$COMMAND" in
     ensure_binary
     shift || true
     "$BUILD_DIR/crivo" check --db "$DB_FILE" "$@"
+    ;;
+  memory-record)
+    ensure_binary
+    "$BUILD_DIR/crivo" memory record --file "${2:-}" --db "$DB_FILE"
+    ;;
+  memory-query)
+    ensure_binary
+    shift || true
+    "$BUILD_DIR/crivo" memory query --db "$DB_FILE" "$@"
     ;;
   validate)
     ensure_binary

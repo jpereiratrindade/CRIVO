@@ -121,6 +121,7 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
   - [E3 — Ciclo de Vida, Trilha de Auditoria e Reconciliação](docs/evidence/E3-lifecycle-events-audit-2026-10-09.md)
   - [E4 — Adaptador CTest e Execução Verificável em Fixture Sintética](docs/evidence/E4-ctest-adapter-synthetic-pilot-2026-10-09.md)
   - [E8 — Verificação sob Demanda e Subsistema de Sandboxes Efêmeras](docs/evidence/E8-on-demand-check-and-sandbox-2026-10-09.md)
+  - [E9 — Memória Técnica Federada e Aprendizagem Transversal](docs/evidence/E9-federated-engineering-memory-2026-10-09.md)
 
 > Sempre pronto. Sempre incompleto.
 

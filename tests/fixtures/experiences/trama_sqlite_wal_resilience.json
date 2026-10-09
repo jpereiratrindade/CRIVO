@@ -1,0 +1,41 @@
+{
+  "schema_version": "crivo.experience-record/1.0.0",
+  "experience_id": "exp-trama-sqlite-wal-resilience",
+  "project_id": "TRAMA-RS",
+  "source_revision": "ed3b3989bf03a98228537dae173e68b567d087ca",
+  "context": {
+    "domain": "Engenharia Territorial e Cadastro Multifinalitário",
+    "language": "C++26",
+    "platform": "Linux POSIX (Fedora Silverblue / Debian Embedded)",
+    "components": ["sqlite3", "wal", "foreign_keys"]
+  },
+  "problem": "Risco de corrupção de base de dados e contenção de escrita durante operações locais com conectividade intermitente e desligamentos abruptos de energia.",
+  "alternatives": [
+    {
+      "title": "Rollback Journaling Tradicional (DELETE/TRUNCATE)",
+      "tradeoffs": "Simples, mas bloqueia leituras durante escritas e é mais lento em fsync repetido.",
+      "rejected_reason": "Inadequado para concorrência de leitura e alta latência de I/O."
+    },
+    {
+      "title": "SQLite WAL Mode + PRAGMA synchronous=NORMAL + foreign_keys=ON",
+      "tradeoffs": "Permite leitores e escritores simultâneos, reduz fsync e garante integridade transacional ACID após crash."
+    }
+  ],
+  "choice": "Adoção de PRAGMA journal_mode=WAL com busy_timeout de 3000ms e foreign_keys=ON em todas as conexões.",
+  "procedure": "Configuração no startup de cada conexão SQLite: PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000;",
+  "observed_result": "100% de integridade verificada nos testes de integridade estrutural (PRAGMA integrity_check) sem deadlocks em concorrência de leitura.",
+  "evidence_ref": {
+    "evidence_id": "evidence-TRAMA-RS-2026-10-09T17:08:41Z-366f3ad91fee",
+    "sha256": "366f3ad91feec83356afa3aad3d29efab5f91b9bef29eed5d2cbf599288b012b",
+    "path": "tests/fixtures/external_evidence/evidence.json"
+  },
+  "applicability_tags": [
+    "capability:sqlite",
+    "sqlite:wal",
+    "persistence:acid",
+    "embedded:resilience",
+    "offline_first"
+  ],
+  "limitations": "Bancos WAL exigem sistema de arquivos POSIX compartilhado; não são recomendados sobre montagens de rede NFS antigas sem suporte a locking.",
+  "created_at": "2026-10-09T17:30:00Z"
+}

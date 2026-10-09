@@ -14,6 +14,7 @@ add_executable(crivo
   src/core.cpp
   src/sandbox.cpp
   src/inspector.cpp
+  src/memory.cpp
   src/registry/json_impl.cpp
   src/registry/validator.cpp
   src/registry/importer.cpp
@@ -193,4 +194,38 @@ add_test(NAME e8_check_empty_target_blocked COMMAND crivo check
   --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_fail
   --fail-closed)
 set_tests_properties(e8_check_empty_target_blocked PROPERTIES WILL_FAIL TRUE)
+
+# Testes de Aceite E9 — Memória Técnica Federada e Aprendizagem Transversal (ADR-0010)
+add_test(NAME e9_memory_record_experience COMMAND crivo memory record
+  --file ${CMAKE_SOURCE_DIR}/tests/fixtures/experiences/trama_sqlite_wal_resilience.json
+  --db ${CMAKE_BINARY_DIR}/memory_test.db)
+set_tests_properties(e9_memory_record_experience PROPERTIES
+  PASS_REGULAR_EXPRESSION "CRIVO MEMORY RECORD PASS")
+
+add_test(NAME e9_memory_query_by_term COMMAND crivo memory query
+  --db ${CMAKE_BINARY_DIR}/memory_test.db
+  --query "corrupção")
+set_tests_properties(e9_memory_query_by_term PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "exp-trama-sqlite-wal-resilience")
+
+add_test(NAME e9_memory_query_by_tag COMMAND crivo memory query
+  --db ${CMAKE_BINARY_DIR}/memory_test.db
+  --tag "capability:sqlite")
+set_tests_properties(e9_memory_query_by_tag PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "PRAGMA journal_mode=WAL")
+
+add_test(NAME e9_memory_query_cross_project COMMAND crivo memory query
+  --db ${CMAKE_BINARY_DIR}/memory_test.db
+  --project TRAMA-RS)
+set_tests_properties(e9_memory_query_cross_project PROPERTIES
+  DEPENDS e9_memory_record_experience
+  PASS_REGULAR_EXPRESSION "TRAMA-RS")
+
+add_test(NAME e9_memory_reject_invalid_file COMMAND crivo memory record
+  --file ${CMAKE_SOURCE_DIR}/tests/bad-version.json
+  --db ${CMAKE_BINARY_DIR}/memory_test.db)
+set_tests_properties(e9_memory_reject_invalid_file PROPERTIES WILL_FAIL TRUE)
+
 

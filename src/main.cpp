@@ -6,6 +6,7 @@
 #include "adapters/ctest_adapter.hpp"
 #include "inspector.hpp"
 #include "sandbox.hpp"
+#include "memory.hpp"
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -29,13 +30,14 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|check|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|check|memory|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
     std::string services_action, service_id;
     std::string registry_action;
     std::string events_action;
+    std::string memory_action;
     std::string adapter_type, adapter_action;
     int option_start = 2;
 
@@ -73,6 +75,13 @@ int main(int argc, char** argv) {
       if (adapter_action != "discover" && adapter_action != "run") {
         throw std::runtime_error("Acao de adaptador desconhecida: " + adapter_action);
       }
+    } else if (command == "memory") {
+      if (argc < 3) throw std::runtime_error("Uso: crivo memory <record|query> [opcoes]");
+      memory_action = argv[2];
+      option_start = 3;
+      if (memory_action != "record" && memory_action != "query") {
+        throw std::runtime_error("Acao de memory desconhecida: " + memory_action);
+      }
     }
 
     std::string db = ".run/crivo.db", file = "catalog/tests.json", web = "web", profile = "core";
@@ -81,6 +90,8 @@ int main(int argc, char** argv) {
     std::string target_path = ".";
     std::string isolation_mode = "sandbox";
     std::string sandbox_backend = "auto";
+    std::string query_term = "";
+    std::string tag_filter = "";
     bool json_output = false;
     std::string bind_address = "127.0.0.1";
     std::string supported_caps_str = "";
@@ -111,6 +122,8 @@ int main(int argc, char** argv) {
       else if (a == "--target" && i + 1 < argc) target_path = argv[++i];
       else if (a == "--isolation" && i + 1 < argc) isolation_mode = argv[++i];
       else if (a == "--backend" && i + 1 < argc) sandbox_backend = argv[++i];
+      else if (a == "--query" && i + 1 < argc) query_term = argv[++i];
+      else if (a == "--tag" && i + 1 < argc) tag_filter = argv[++i];
       else if (a == "--build" && i + 1 < argc) build_dir = argv[++i];
       else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
       else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
@@ -385,6 +398,22 @@ int main(int argc, char** argv) {
         return 0;
       }
       return 2;
+    }
+    if (command == "memory") {
+      if (memory_action == "record") {
+        std::string exp_file = target_file.empty() ? file : target_file;
+        if (!crivo::memory::load_and_record_experience_file(db, exp_file)) {
+          std::cerr << "CRIVO MEMORY RECORD FAILED: Falha ao carregar ou validar registro de experiencia\n";
+          return 2;
+        }
+        std::cout << "CRIVO MEMORY RECORD PASS: Experiencia registrada com sucesso em " << db << "\n";
+        return 0;
+      }
+      if (memory_action == "query") {
+        auto exps = crivo::memory::query_experiences(db, query_term, project_id == "local-project" ? "" : project_id, tag_filter);
+        std::cout << crivo::memory::serialize_experiences_json(exps) << "\n";
+        return 0;
+      }
     }
     if (command == "adapter") {
       if (adapter_type == "ctest") {

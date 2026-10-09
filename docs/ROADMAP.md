@@ -38,7 +38,7 @@
 - [x] **E2 — Inversão do fluxo**: Implementar CLI `crivo check` para solicitação sob demanda pelo desenvolvimento
 - [x] **E3 — Independência**: Oráculos CRIVO-native e adaptadores CLI sem dependência de CTest/CMake no participante
 - [x] **E4 — Isolamento**: Subsistema de Sandboxes efêmeras com backends Bubblewrap e Podman rootless no Linux (41 testes CTest)
-- [ ] **E5 — Evidências & Memória**: Ampliação de telemetria, proveniência estrita e índice de memória federada (FTS5 SQLite)
+- [x] **E5 — Evidências & Memória**: Ampliação de telemetria, proveniência estrita e índice de memória federada (46 testes CTest)
 - [ ] **E6 — Piloto TRAMA-RS**: Fluxo completo sob demanda em sandbox para o TRAMA-RS
 - [ ] **E7 — Interface SisTer & MCP**: Acompanhamento, histórico de sandboxes e consultas contextuais para IDEs e LLMs
 

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Technical Experience Record Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.experience-record/1.0.0"
+    },
+    "experience_id": {
+      "type": "string",
+      "pattern": "^exp-[a-zA-Z0-9_-]+$"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "source_revision": {
+      "type": "string"
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "domain": { "type": "string" },
+        "language": { "type": "string" },
+        "platform": { "type": "string" },
+        "components": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["language", "platform"],
+      "additionalProperties": true
+    },
+    "problem": {
+      "type": "string"
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "tradeoffs": { "type": "string" },
+          "rejected_reason": { "type": "string" }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      }
+    },
+    "choice": {
+      "type": "string"
+    },
+    "procedure": {
+      "type": "string"
+    },
+    "observed_result": {
+      "type": "string"
+    },
+    "evidence_ref": {
+      "type": "object",
+      "properties": {
+        "evidence_id": { "type": "string" },
+        "sha256": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "applicability_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "limitations": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "experience_id",
+    "project_id",
+    "problem",
+    "choice",
+    "procedure",
+    "observed_result",
+    "applicability_tags"
+  ],
+  "additionalProperties": false
+}

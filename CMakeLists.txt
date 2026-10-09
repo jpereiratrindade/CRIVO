@@ -17,6 +17,7 @@ add_executable(crivo
   src/registry/importer.cpp
   src/registry/applicability.cpp
   src/registry/plan.cpp
+  src/registry/lifecycle.cpp
 )
 
 target_include_directories(crivo PRIVATE src)
@@ -88,3 +89,16 @@ set_tests_properties(e2_plan_unknown_capability_open_world PROPERTIES PASS_REGUL
 
 add_test(NAME e2_plan_fail_closed_rejection COMMAND crivo plan --profile pilot-e1 --dir ${CMAKE_SOURCE_DIR}/catalog --supported-caps capability:json_parser --fail-closed)
 set_tests_properties(e2_plan_fail_closed_rejection PROPERTIES WILL_FAIL TRUE)
+
+# Testes de Aceite E3 — Ciclo de Vida, Trilha de Auditoria e Reconciliação
+add_test(NAME e3_events_record_and_list COMMAND crivo events record --db ${CMAKE_BINARY_DIR}/e3_events.db --entity-type test_specification --entity-ref crivo.sqlite.transaction.rollback@0.1.0 --event-type QUALIFY --cause qualification_review_passed --authority maintainer-local)
+set_tests_properties(e3_events_record_and_list PROPERTIES PASS_REGULAR_EXPRESSION "CRIVO EVENT RECORDED PASS")
+
+add_test(NAME e3_events_list_query COMMAND crivo events list --db ${CMAKE_BINARY_DIR}/e3_events.db --entity crivo.sqlite.transaction.rollback@0.1.0)
+set_tests_properties(e3_events_list_query PROPERTIES DEPENDS e3_events_record_and_list PASS_REGULAR_EXPRESSION "\"event_type\":\"QUALIFY\"")
+
+add_test(NAME e3_events_missing_entity_ref COMMAND crivo events record --db ${CMAKE_BINARY_DIR}/e3_events.db --entity-type test_specification --event-type QUALIFY)
+set_tests_properties(e3_events_missing_entity_ref PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME e3_events_reconcile_orphans COMMAND crivo events reconcile --db ${CMAKE_BINARY_DIR}/e3_events.db)
+set_tests_properties(e3_events_reconcile_orphans PROPERTIES PASS_REGULAR_EXPRESSION "CRIVO RECONCILIATION PASS")

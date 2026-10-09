@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CRIVO Lifecycle Event Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crivo.lifecycle-event/1.0.0"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "reference",
+        "technique",
+        "test_specification",
+        "test_implementation",
+        "profile",
+        "test_execution",
+        "catalog_batch"
+      ]
+    },
+    "entity_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "BIRTH",
+        "QUALIFY",
+        "SUSPEND",
+        "RESUME",
+        "SUPERSEDE",
+        "RETIRE",
+        "RUN_STARTED",
+        "RUN_FINISHED",
+        "RUN_INTERRUPTED"
+      ]
+    },
+    "occurred_at": {
+      "type": "string"
+    },
+    "recorded_at": {
+      "type": "string"
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline_ref": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "predecessor_event_id": {
+      "type": "string"
+    },
+    "payload_digest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "entity_type",
+    "entity_ref",
+    "event_type",
+    "occurred_at",
+    "recorded_at",
+    "cause",
+    "authority_ref"
+  ],
+  "additionalProperties": false
+}

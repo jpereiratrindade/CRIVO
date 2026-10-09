@@ -12,15 +12,19 @@
 - [x] CTest smoke local
 - [ ] Auditoria de segurança e testes de carga
 
-## v0.2.0 · Integração útil
+## v0.2.0 · Integração e Validação Estruturada (E1 a E4 Concluídos)
 
-- [ ] JSON Schema estrito, migração de banco e testes negativos
-- [ ] Adaptador CTest/GoogleTest com importação de JUnit/CTest JSON
-- [ ] Perfis hierárquicos (`includes`, filtros, política)
-- [ ] Registro de projeto e ambiente com versionamento
-- [ ] Política de execução por host, privilégio, tempo e recursos
-- [ ] Evidências referenciadas, digests e exportação portável
-- [ ] Primeiro projeto-piloto real: TRAMA
+- [x] JSON Schema estrito v1.0.0 (reference, technique, test-spec, implementation, profile, plan, evidence)
+- [x] Validador estrito em C++26 e resolução de integridade referencial cruzada (E1)
+- [x] Avaliação tri-estado de aplicabilidade (APPLICABLE, NOT_APPLICABLE, UNKNOWN) e resolução de planos (E2)
+- [x] Política de falha fechada (--fail-closed) para aplicabilidade indeterminada (E2)
+- [x] Trilha de auditoria append-only, eventos de ciclo de vida e digest SHA-256 canônico (E3)
+- [x] Reconciliação estruturada de execuções órfãs / interrupções (E3)
+- [x] Adaptador CTest com importação de JUnit XML e CTest JSON v1 (E4)
+- [x] Fixture sintética local para verificação isolada de adaptadores (E4)
+- [x] Suíte de 31 testes CTest automatizados com 100% de aprovação (E1 a E4)
+- [ ] Sandboxing reforçado e isolamento para projeto-piloto TRAMA
+- [ ] Segundo projeto-piloto: ELO (Raspberry Pi / offline)
 
 ## v0.3.0 · Resiliência e federação
 

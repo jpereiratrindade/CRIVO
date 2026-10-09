@@ -52,3 +52,10 @@ interna não indica implementação, execução ou evidência.
 Endpoints de catálogo, categorias e execuções são restritos ao bind loopback.
 O modo LAN oferece apenas a projeção mínima de serviços implementados e arquivos
 estáticos da apresentação.
+
+## Relação com o Repertório Internacional (v0.2.0)
+
+A projeção de serviços legada (`/api/v1/services` e `crivo services list/show`) coexiste
+de forma estável com os 5 registros internacionais tipados (`catalog/references/`,
+`catalog/techniques/`, `catalog/specifications/`, `catalog/implementations/`, `catalog/profiles/`).
+A validação estrita dessas entidades é executada via `crivo registry validate` e `crivo plan`.

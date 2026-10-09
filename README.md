@@ -13,14 +13,22 @@ Primeiro esqueleto executável em C++26, SQLite3 WAL, HTTP local de leitura e in
 
 ### Script único (recomendado)
 
+### Script único (recomendado)
+
 O script detecta a ausência do Boost no host e usa automaticamente a Toolbox
 `crivo-dev` (ou a indicada por `CRIVO_TOOLBOX`):
 
 ```bash
-./crivo.sh setup
-./crivo.sh run
-./crivo.sh serve
+# Executa build, 31 testes CTest, validação estrita, importação, run e sobe o servidor web
+./crivo.sh
 ```
+
+Outros comandos do script:
+- `./crivo.sh test` — Executa toda a suíte CTest (31 testes).
+- `./crivo.sh validate` — Valida schemas JSON v1.0.0 e integridade referencial.
+- `./crivo.sh plan` — Gera e exibe o plano de teste resolvido.
+- `./crivo.sh events` — Exibe a trilha de auditoria e eventos de ciclo de vida.
+- `./crivo.sh status` — Mostra o ambiente, banco e endereços de rede.
 
 Acesso local: `http://127.0.0.1:8765`.
 
@@ -45,51 +53,60 @@ somente leitura, mas ainda não possui autenticação nem TLS: use apenas em red
 confiável e não encaminhe essa porta no roteador. O firewall do host pode exigir
 liberação local deliberada da porta TCP 8765.
 
-### Comandos manuais
+### Comandos manuais da CLI (v0.2.0)
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j2
-ctest --test-dir build --output-on-failure
-./build/crivo init
-./build/crivo catalog
-./build/crivo run --profile core
-./build/crivo runs
-./build/crivo serve
-# no navegador: http://127.0.0.1:8765
-```
+# 1. Validação estrita de catálogo e integridade de schemas v1.0.0
+./build/crivo registry validate --dir catalog
 
-Para selecionar um grupo: `./build/crivo run --profile sqlite`.
-Para testes apenas planejados, o resultado é BLOCKED e o processo termina com código 1.
+# 2. Importação idempotente com modo dry-run e transações SQLite
+./build/crivo registry import --dir catalog --db .run/crivo.db --dry-run
+./build/crivo registry import --dir catalog --db .run/crivo.db
+
+# 3. Resolução de planos de teste e avaliação de aplicabilidade tri-estado
+./build/crivo plan --profile pilot-e1 --dir catalog
+./build/crivo plan --profile pilot-e1 --dir catalog --supported-caps capability:json_parser --fail-closed
+
+# 4. Trilha de auditoria append-only e eventos de ciclo de vida (SHA-256)
+./build/crivo events record --entity-type test_specification --entity-ref crivo.sqlite.transaction.rollback@0.1.0 --event-type QUALIFY --cause review_passed
+./build/crivo events list
+./build/crivo events reconcile
+
+# 5. Adaptador CTest para descoberta e execução verificável com JUnit/JSON
+./build/crivo adapter ctest discover --build build/synthetic_fixture --project synthetic-pilot
+./build/crivo adapter ctest run --build build/synthetic_fixture --evidence-dir .run/evidence --project synthetic-pilot
+
+# 6. Execução clássica v0.1.0 e servidor Web SisTer
+./build/crivo run --profile core
+./build/crivo serve --db .run/crivo.db --web web --bind 127.0.0.1 --port 8765
+```
 
 A interface é **somente leitura**, sem endpoint para execução remota, alterações de catálogo ou comandos do sistema. Não publique diretamente o HTTP local na rede; requer autenticação, autorização e gateway próprios antes de qualquer exposição.
 
-## Limites deliberados da v0.1.0
+## Limites deliberados e estado atual
 
-- Ainda não integra sistemas externos nem executa CTest/GoogleTest (previsto para etapa seguinte).
-- A tabela de testes é persistida pelo `init` e sincronizada no `run`; importação de projetos é apenas exemplo declarativo.
-- Os testes implementados validam as condições do CRIVO local, não a conformidade dos sistemas externos.
-- Banco e evidências são locais, com histórico simples, não assinados; cadeia de custódia e retenção ainda pendentes.
-- Servidor HTTP de demonstração síncrono vinculado por padrão a `127.0.0.1`. A opção `serve-lan` expõe em `0.0.0.0` sem TLS ou autenticação; não deve ser exposta a redes não confiáveis.
-- Licenciamento institucional e autoria devem ser definidos antes da publicação.
+- **Catálogo Internacional e Validação (E1):** Implementados schemas JSON estritos v1.0.0 (`Reference`, `Technique`, `TestSpec`, `TestImplementation`, `Profile`) com checagem de tipos reais, enumerações e integridade referencial cruzada via `Boost.JSON`.
+- **Resolução de Planos (E2):** Motor de aplicabilidade tri-estado (`APPLICABLE`, `NOT_APPLICABLE`, `UNKNOWN`) com suporte a política de falha fechada (`--fail-closed`).
+- **Ciclo de Vida e Auditoria (E3):** Trilha append-only de eventos de ciclo de vida com digest SHA-256 canônico e reconciliação de execuções órfãs (`RUN_INTERRUPTED`).
+- **Adaptador CTest (E4):** Descoberta JSON v1 (`kind=ctestInfo`) e execução isolada com emissão de JUnit XML e metadados de evidência auditáveis, validada contra fixture sintética local (`tests/fixtures/ctest`).
+- **Próximos passos:** Integração autorizada e sandbox para o piloto real TRAMA e ELO.
 
-## Referências de arquitetura
+## Referências de arquitetura e decisões
 
-Ver [`docs/CRIVO-001_v0.1.0.md`](docs/CRIVO-001_v0.1.0.md) e [`docs/ROADMAP.md`](docs/ROADMAP.md).
-
-Referência visual e conceitual: `jpereiratrindade/SisTer` (`docs/architecture/INTERFACE.md`, `SISTER-WEB-RELATIONAL-SURFACE-001`, ADR-0028, web/styles.css). Reuso de *padrão*, não incorporação de identidade ou autoridade do SisTer.
-
-## Evolução controlada
-
-A baseline importada está congelada no Git. A missão v0.2.0, seu documento de
-projeto, a decisão inicial de migração e a evidência de reprodução estão em
-[`docs/CRIVO-DEV-001_v0.2.0.md`](docs/CRIVO-DEV-001_v0.2.0.md),
-[`docs/CRIVO-PROJ-001_v0.2.0.md`](docs/CRIVO-PROJ-001_v0.2.0.md),
-[`docs/adr/ADR-0001-evolucao-do-catalogo.md`](docs/adr/ADR-0001-evolucao-do-catalogo.md)
-e [`docs/evidence/E0-baseline-2026-10-09.md`](docs/evidence/E0-baseline-2026-10-09.md).
-
-Capacidades descritas nesses documentos como candidatas ou planejadas não são
-consideradas implementadas sem código, testes e evidência correspondentes.
+- [`docs/CRIVO-001_v0.1.0.md`](docs/CRIVO-001_v0.1.0.md) e [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- [`docs/CRIVO-DEV-001_v0.2.0.md`](docs/CRIVO-DEV-001_v0.2.0.md) e [`docs/CRIVO-PROJ-001_v0.2.0.md`](docs/CRIVO-PROJ-001_v0.2.0.md)
+- Decisões de Arquitetura:
+  - [ADR-0001 — Evolução incremental do catálogo v0.1.0](docs/adr/ADR-0001-evolucao-do-catalogo.md)
+  - [ADR-0002 — Validação estrita de schemas e integridade referencial com Boost.JSON](docs/adr/ADR-0002-validador-estrito-e-resolucao-referencial.md)
+  - [ADR-0003 — Resolução de perfis e avaliação de aplicabilidade com política de falha fechada](docs/adr/ADR-0003-resolucao-de-perfis-e-aplicabilidade.md)
+  - [ADR-0004 — Trilha de auditoria append-only com eventos de ciclo de vida e digest SHA-256](docs/adr/ADR-0004-eventos-de-ciclo-de-vida-e-auditoria.md)
+  - [ADR-0005 — Adaptador CTest para descoberta e execução verificável com fixture sintética](docs/adr/ADR-0005-adaptador-ctest-e-execucao-verificavel.md)
+- Relatórios Factuais de Evidência:
+  - [E0 — Baseline v0.1.0](docs/evidence/E0-baseline-2026-10-09.md)
+  - [E1 — Validação Estrita do Repertório Internacional](docs/evidence/E1-registry-validation-2026-10-09.md)
+  - [E2 — Resolução de Perfis e Avaliação de Aplicabilidade](docs/evidence/E2-profile-applicability-resolution-2026-10-09.md)
+  - [E3 — Ciclo de Vida, Trilha de Auditoria e Reconciliação](docs/evidence/E3-lifecycle-events-audit-2026-10-09.md)
+  - [E4 — Adaptador CTest e Execução Verificável em Fixture Sintética](docs/evidence/E4-ctest-adapter-synthetic-pilot-2026-10-09.md)
 
 > Sempre pronto. Sempre incompleto.
 

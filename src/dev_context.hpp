@@ -9,8 +9,9 @@
 namespace crivo::context {
 
 struct DevContextReport {
-    std::string schema_version = "crivo.dev-context/1.0.0";
+    std::string schema_version = "crivo.dev-context/1.1.0";
     std::string target_id;
+    std::string content_fingerprint;
     std::string project_id;
     std::string identification_status = "provisional"; // "declared" ou "provisional"
     std::string memory_status = "NO_RELEVANT_EXPERIENCES"; // "RELEVANT_MATCHES" ou "NO_RELEVANT_EXPERIENCES"

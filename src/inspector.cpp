@@ -156,7 +156,7 @@ TargetInfo inspect_target(const fs::path& target_path) {
             if (ext == ".json") has_json = true;
             if (ext == ".db" || ext == ".sqlite" || ext == ".sqlite3") has_sqlite = true;
             if (filename == "CMakeLists.txt" || filename == "CTestTestfile.cmake") has_cmake = true;
-            if (filename == "crivo" || filename == "main" || ext == ".sh" || filename == "cli.py") has_cli = true;
+            if (filename == "main" || ext == ".sh" || filename == "cli.py") has_cli = true;
             if (ext == ".py" || filename == "pyproject.toml" || filename == "setup.py" || filename == "requirements.txt") has_python = true;
             if (ext == ".cpp" || ext == ".c" || ext == ".hpp" || ext == ".h" || filename == "Makefile") has_c_cpp = true;
             if (ext == ".rs" || filename == "Cargo.toml") has_rust = true;
@@ -312,6 +312,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
 
     std::string start_time = generate_utc_timestamp();
     auto start_steady = std::chrono::steady_clock::now();
+    std::string observed_isolation = "NOT_REQUIRED";
+    std::string observed_driver = "none";
 
     // 5. Execute tests in Sandbox com oráculos reais
     std::ostringstream junit_xml;
@@ -341,34 +343,69 @@ CheckSummary execute_check(const CheckOptions& opts) {
         }
 
         // Execução real do oráculo conforme a especificação técnica
-        bool test_passed = true;
+        bool oracle_executed = false;
+        bool test_passed = false;
         std::string failure_msg;
 
         if (test_case.spec_id == "crivo.catalog.schema-strict" || test_case.spec_id.find("schema-strict") != std::string::npos) {
-            // Oráculo real de validação de schemas em arquivos JSON do alvo
+            // Este oraculo aplica contratos CRIVO somente a documentos que os
+            // declaram. JSON generico recebe apenas parsing sintatico.
+            oracle_executed = true;
             registry::RegistryCollection target_collection;
             registry::ValidationReport target_report;
             for (const auto& entry : fs::recursive_directory_iterator(target.root_path, fs::directory_options::skip_permission_denied)) {
                 if (entry.is_regular_file() && entry.path().extension() == ".json") {
                     if (entry.path().filename() == "tests.json") continue;
-                    registry::validate_file(entry.path().string(), target_collection, target_report);
+                    try {
+                        std::ifstream input(entry.path());
+                        std::string bytes((std::istreambuf_iterator<char>(input)), {});
+                        auto document = boost::json::parse(bytes);
+                        if (document.is_object() && document.as_object().contains("schema_version")) {
+                            registry::validate_file(entry.path().string(), target_collection, target_report);
+                        }
+                    } catch (const std::exception& e) {
+                        target_report.valid = false;
+                        failure_msg = "Invalid JSON syntax in " + entry.path().string() + ": " + e.what();
+                    }
                 }
             }
             if (!target_report.valid) {
                 test_passed = false;
-                failure_msg = "Schema validation failed on target JSON files (" + std::to_string(target_report.errors.size()) + " errors)";
+                if (failure_msg.empty()) failure_msg = "Declared CRIVO schema validation failed (" + std::to_string(target_report.errors.size()) + " errors)";
+            } else {
+                test_passed = true;
             }
         }
 
-        // Execução dentro da sandbox efêmera
-        std::vector<std::string> test_cmd = {"true"};
+        std::vector<std::string> test_cmd;
         if (test_case.adapter == "crivo.adapter.ctest" || test_case.adapter == "ctest") {
-            test_cmd = {"ctest", "--show-only"};
+            oracle_executed = true;
+            test_cmd = {"ctest", "--test-dir", "/target", "--output-on-failure"};
         }
 
-        auto exec_res = sandbox::run_in_sandbox(sbx_config, test_cmd);
+        if (!oracle_executed) {
+            summary.blocked_tests++;
+            junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
+            junit_xml << "      <error message=\"NOT_IMPLEMENTED: no qualified executor and oracle\"/>\n";
+            junit_xml << "    </testcase>\n";
+            continue;
+        }
 
-        if (exec_res.isolation_status == "BLOCKED") {
+        sandbox::ExecutionResult exec_res;
+        if (test_cmd.empty()) {
+            exec_res.exit_code = 0;
+            exec_res.isolation_driver = "in_process_read_only";
+            exec_res.isolation_status = "NOT_REQUIRED";
+        } else {
+            exec_res = sandbox::run_in_sandbox(sbx_config, test_cmd);
+            observed_driver = exec_res.isolation_driver;
+            observed_isolation = exec_res.isolation_status;
+        }
+
+        const bool strong_isolation_missing = opts.isolation == "sandbox" &&
+            !test_cmd.empty() && exec_res.isolation_status != "ENFORCED";
+
+        if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing) {
             summary.blocked_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <error message=\"Sandbox isolation blocked\"/>\n";
@@ -409,8 +446,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
     // Write Sandbox Report
     sandbox::ExecutionResult overall_sbx;
     overall_sbx.exit_code = (summary.failed_tests == 0 && summary.blocked_tests == 0) ? 0 : 1;
-    overall_sbx.isolation_driver = opts.backend;
-    overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" : "ENFORCED";
+    overall_sbx.isolation_driver = observed_driver;
+    overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" : observed_isolation;
     overall_sbx.duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_steady - start_steady);
 
     fs::path sbx_report_file = evidence_path / "sandbox-report.json";

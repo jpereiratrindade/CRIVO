@@ -492,7 +492,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (command == "mcp") {
-      return crivo::mcp::run_stdio_server(db, catalog_dir);
+      return crivo::mcp::run_stdio_server(db, catalog_dir, workspace_root.empty() ? "." : workspace_root);
     }
     throw std::runtime_error("Comando desconhecido: " + command);
   } catch (const std::exception& e) {

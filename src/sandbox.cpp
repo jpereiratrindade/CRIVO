@@ -403,7 +403,7 @@ std::string generate_sandbox_report_json(
     const std::string& instance_id)
 {
     boost::json::object report;
-    report["schema_version"] = "crivo.sandbox-report/1.0.0";
+    report["schema_version"] = "crivo.sandbox-report/1.1.0";
     report["instance_id"] = instance_id;
     report["backend"] = res.isolation_driver;
     report["isolation_status"] = res.isolation_status;

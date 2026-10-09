@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crivo.sister.org/schemas/dev-context/1.1.0.schema.json",
+  "title": "CrivoDevContext",
+  "type": "object",
+  "required": ["schema_version", "target_id", "content_fingerprint", "project_id", "identification_status", "memory_status", "generated_at", "discovered_capabilities", "relevant_experiences", "recent_runs"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "crivo.dev-context/1.1.0"},
+    "target_id": {"type": "string"},
+    "content_fingerprint": {"type": "string"},
+    "project_id": {"type": "string"},
+    "identification_status": {"type": "string", "enum": ["declared", "provisional"]},
+    "memory_status": {"type": "string", "enum": ["RELEVANT_MATCHES", "NO_RELEVANT_EXPERIENCES"]},
+    "source_revision": {"type": "string"},
+    "source_worktree": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "discovered_capabilities": {"type": "array", "items": {"type": "string"}},
+    "relevant_experiences": {"type": "array", "items": {"type": "object", "required": ["experience_id", "problem", "choice", "observed_result"], "properties": {"experience_id": {"type": "string"}, "project_id": {"type": "string"}, "domain": {"type": "string"}, "problem": {"type": "string"}, "choice": {"type": "string"}, "observed_result": {"type": "string"}, "applicability_tags": {"type": "array", "items": {"type": "string"}}, "evidence_sha256": {"type": "string"}}, "additionalProperties": false}},
+    "recent_runs": {"type": "array", "items": {"type": "object", "required": ["run_id", "status"], "properties": {"run_id": {"type": "string"}, "project_id": {"type": "string"}, "mode": {"type": "string"}, "status": {"type": "string"}, "duration_ms": {"type": "integer"}, "artifact_sha256": {"type": "string"}, "started_at": {"type": "string"}}, "additionalProperties": false}}
+  },
+  "additionalProperties": false
+}

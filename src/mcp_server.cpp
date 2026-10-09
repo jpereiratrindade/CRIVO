@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <boost/json.hpp>
 #include <sqlite3.h>
+#include <algorithm>
+#include <vector>
 
 namespace crivo::mcp {
 
@@ -21,15 +23,16 @@ static std::string safe_string_arg(const boost::json::object& args, const std::s
     return def;
 }
 
-static bool is_path_safe_and_authorized(const std::string& path_str) {
+static bool is_path_safe_and_authorized(const std::string& path_str, const fs::path& authorized_root,
+                                        fs::path& resolved) {
     if (path_str.empty()) return true;
     try {
-        fs::path p(path_str);
-        std::string s = p.string();
-        if (s.find("..") != std::string::npos) {
-            return false;
-        }
-        return true;
+        const fs::path root = fs::canonical(authorized_root);
+        fs::path candidate(path_str);
+        if (candidate.is_relative()) candidate = root / candidate;
+        resolved = fs::canonical(candidate); // resolve tambem links simbolicos
+        auto mismatch = std::mismatch(root.begin(), root.end(), resolved.begin(), resolved.end());
+        return mismatch.first == root.end() && fs::is_directory(resolved);
     } catch (...) {
         return false;
     }
@@ -116,7 +119,8 @@ static boost::json::array get_tools_list() {
 static boost::json::object handle_tool_call(
     const std::string& tool_name,
     const boost::json::object& args,
-    const std::string& db_path)
+    const std::string& db_path,
+    const fs::path& authorized_root)
 {
     boost::json::object result;
     boost::json::array content;
@@ -130,10 +134,11 @@ static boost::json::object handle_tool_call(
             std::string q = safe_string_arg(args, "query", "");
             std::string tag = safe_string_arg(args, "tag", "");
 
-            if (!is_path_safe_and_authorized(target)) {
+            fs::path resolved_target;
+            if (!is_path_safe_and_authorized(target, authorized_root, resolved_target)) {
                 text_out = "{\"error\": \"ACCESS_DENIED_OUT_OF_SCOPE\", \"message\": \"Caminho fora do escopo autorizado\"}";
             } else {
-                auto rep = crivo::context::build_dev_context(db_path, target, proj, q, tag);
+                auto rep = crivo::context::build_dev_context(db_path, resolved_target.string(), proj, q, tag);
                 text_out = crivo::context::serialize_dev_context_json(rep);
             }
         } else if (tool_name == "knowledge_query") {
@@ -180,7 +185,8 @@ static boost::json::object handle_tool_call(
                             // Re-verificar integridade física do artefato se o caminho existir
                             if (!ev_path.empty() && fs::exists(ev_path)) {
                                 std::string actual_sha = crivo::check::calculate_file_sha256(ev_path);
-                                obj["integrity_verified"] = (actual_sha == expected_sha || expected_sha.empty());
+                                obj["integrity_verified"] = (!expected_sha.empty() && actual_sha == expected_sha);
+                                if (expected_sha.empty()) obj["integrity_status"] = "UNVERIFIABLE_MISSING_EXPECTED_DIGEST";
                                 obj["verified_sha256"] = boost::json::string_view(actual_sha);
                             } else {
                                 obj["integrity_verified"] = false;
@@ -255,7 +261,9 @@ static boost::json::object handle_tool_call(
     return result;
 }
 
-int run_stdio_server(const std::string& db_path, const std::string& catalog_dir) {
+int run_stdio_server(const std::string& db_path, const std::string& catalog_dir,
+                     const std::string& workspace_root) {
+    (void)catalog_dir;
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line.empty()) continue;
@@ -291,15 +299,22 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
 
         if (method == "initialize") {
             boost::json::object res;
-            // Negociação de versão MCP: suporta 2026-07-28, 2025-03-20 ou 2024-11-05
-            std::string requested_version = "2024-11-05";
+            // O servidor ecoa uma versao suportada solicitada; caso contrario,
+            // negocia sua versao mais recente, conforme o lifecycle MCP.
+            std::string requested_version = "2025-11-25";
             if (req.contains("params") && req.at("params").is_object()) {
                 const auto& p = req.at("params").as_object();
                 if (p.contains("protocolVersion") && p.at("protocolVersion").is_string()) {
                     requested_version = std::string(p.at("protocolVersion").as_string());
                 }
             }
-            res["protocolVersion"] = boost::json::string_view(requested_version);
+            static const std::vector<std::string> supported = {
+                "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"
+            };
+            const std::string negotiated_version =
+                std::find(supported.begin(), supported.end(), requested_version) != supported.end()
+                    ? requested_version : supported.front();
+            res["protocolVersion"] = boost::json::string_view(negotiated_version);
 
             boost::json::object server_info;
             server_info["name"] = "crivo-mcp-server";
@@ -327,11 +342,16 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir)
                 if (params.contains("name") && params.at("name").is_string()) {
                     t_name = std::string(params.at("name").as_string());
                 }
-                boost::json::object t_args;
-                if (params.contains("arguments") && params.at("arguments").is_object()) {
-                    t_args = params.at("arguments").as_object();
+                if (params.contains("arguments") && !params.at("arguments").is_object()) {
+                    boost::json::object err;
+                    err["code"] = -32602;
+                    err["message"] = "Invalid params: arguments must be an object";
+                    resp["error"] = std::move(err);
+                } else {
+                    boost::json::object t_args;
+                    if (params.contains("arguments")) t_args = params.at("arguments").as_object();
+                    resp["result"] = handle_tool_call(t_name, t_args, db_path, workspace_root);
                 }
-                resp["result"] = handle_tool_call(t_name, t_args, db_path);
             } else {
                 boost::json::object err;
                 err["code"] = -32602;

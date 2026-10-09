@@ -19,13 +19,27 @@ static std::string now_utc() {
     return ss.str();
 }
 
-static std::string compute_path_fingerprint(const std::filesystem::path& p) {
+static std::string compute_content_fingerprint(const std::filesystem::path& p) {
     try {
-        std::string can = std::filesystem::canonical(p).string();
-        std::hash<std::string> hasher;
-        size_t h = hasher(can);
+        std::vector<fs::path> files;
+        for (const auto& entry : fs::recursive_directory_iterator(p, fs::directory_options::skip_permission_denied)) {
+            if (entry.is_regular_file() && entry.path().string().find("/.git/") == std::string::npos)
+                files.push_back(entry.path());
+        }
+        std::sort(files.begin(), files.end());
+        uint64_t h = 1469598103934665603ULL;
+        auto add = [&](const char* data, size_t size) {
+            for (size_t i = 0; i < size; ++i) { h ^= static_cast<unsigned char>(data[i]); h *= 1099511628211ULL; }
+        };
+        for (const auto& file : files) {
+            const auto rel = fs::relative(file, p).generic_string();
+            add(rel.data(), rel.size());
+            std::ifstream in(file, std::ios::binary);
+            char buffer[8192];
+            while (in.read(buffer, sizeof(buffer)) || in.gcount() > 0) add(buffer, static_cast<size_t>(in.gcount()));
+        }
         std::stringstream ss;
-        ss << std::hex << std::setw(12) << std::setfill('0') << (h & 0xFFFFFFFFFFFFULL);
+        ss << std::hex << std::setw(16) << std::setfill('0') << h;
         return ss.str();
     } catch (...) {
         return "unresolved";
@@ -59,8 +73,9 @@ DevContextReport build_dev_context(
     report.generated_at = now_utc();
 
     std::filesystem::path p(target_path.empty() ? "." : target_path);
-    std::string fingerprint = compute_path_fingerprint(p);
+    std::string fingerprint = compute_content_fingerprint(p);
     report.target_id = "target-" + fingerprint;
+    report.content_fingerprint = "fnv1a64:" + fingerprint;
     report.source_worktree = p.string();
 
     // Identificação do projeto sem viés
@@ -157,6 +172,7 @@ std::string serialize_dev_context_json(const DevContextReport& report) {
     boost::json::object root;
     root["schema_version"] = boost::json::string_view(report.schema_version);
     root["target_id"] = boost::json::string_view(report.target_id);
+    root["content_fingerprint"] = boost::json::string_view(report.content_fingerprint);
     root["project_id"] = boost::json::string_view(report.project_id);
     root["identification_status"] = boost::json::string_view(report.identification_status);
     root["memory_status"] = boost::json::string_view(report.memory_status);

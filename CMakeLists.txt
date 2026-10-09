@@ -170,14 +170,7 @@ set_tests_properties(e7_native_evidence_query PROPERTIES DEPENDS e7_native_evide
   PASS_REGULAR_EXPRESSION "\"adapter\":\"crivo-native\"")
 
 # Testes de Aceite E8 — Verificação sob Demanda e Sandbox Efêmera (CRIVO-DEV-002 / ADR-0008 / ADR-0009)
-add_test(NAME e8_check_on_demand_pass COMMAND crivo check
-  --target ${CMAKE_SOURCE_DIR}/catalog
-  --profile pilot-e1
-  --catalog ${CMAKE_SOURCE_DIR}/catalog
-  --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence
-  --db ${CMAKE_BINARY_DIR}/check_test.db)
-set_tests_properties(e8_check_on_demand_pass PROPERTIES
-  PASS_REGULAR_EXPRESSION "CRIVO CHECK PASS")
+add_test(NAME e8_check_unimplemented_oracles_blocked COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${CMAKE_SOURCE_DIR}/catalog' --profile pilot-e1 --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK BLOCKED:.*blocked=2' <<<\"$out\"")
 
 add_test(NAME e8_check_json_summary COMMAND crivo check
   --target ${CMAKE_SOURCE_DIR}/catalog
@@ -230,7 +223,7 @@ add_test(NAME e9_memory_reject_invalid_file COMMAND crivo memory record
   --db ${CMAKE_BINARY_DIR}/memory_test.db)
 set_tests_properties(e9_memory_reject_invalid_file PROPERTIES WILL_FAIL TRUE)
 
-# Testes de Aceite E10 — Contrato de Contexto de Desenvolvimento (crivo.dev-context/1.0.0 / CRIVO-DEV-003-ADENDO-001)
+# Testes de Aceite E10 — Contrato de Contexto de Desenvolvimento (crivo.dev-context/1.1.0 / CRIVO-DEV-003-ADENDO-001-R1)
 add_test(NAME e10_dev_context_cli COMMAND crivo context
   --target ${CMAKE_SOURCE_DIR}/catalog
   --db ${CMAKE_BINARY_DIR}/memory_test.db)
@@ -244,7 +237,7 @@ add_test(NAME e10_dev_context_json COMMAND crivo context
   --json)
 set_tests_properties(e10_dev_context_json PROPERTIES
   DEPENDS e9_memory_record_experience
-  PASS_REGULAR_EXPRESSION "\"schema_version\":\"crivo.dev-context/1.0.0\"")
+  PASS_REGULAR_EXPRESSION "\"schema_version\":\"crivo.dev-context/1.1.0\"")
 
 add_test(NAME e10_dev_context_with_filter COMMAND crivo context
   --target ${CMAKE_SOURCE_DIR}/catalog
@@ -299,10 +292,8 @@ add_test(NAME e11_04_http_service COMMAND crivo context --target ${E11_DIR}/http
 set_tests_properties(e11_04_http_service PROPERTIES
   PASS_REGULAR_EXPRESSION "capability:http_server")
 
-# E11-05: Mesmo sistema com nome de diretório diferente produz mesmas capacidades
-add_test(NAME e11_05_worktree_consistency COMMAND crivo context --target ${E11_DIR}/worktree_b --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
-set_tests_properties(e11_05_worktree_consistency PROPERTIES
-  PASS_REGULAR_EXPRESSION "capability:json_parser")
+# E11-05: Mesmo conteudo em caminhos diferentes produz a mesma identidade de conteudo
+add_test(NAME e11_05_worktree_consistency COMMAND bash ${CMAKE_SOURCE_DIR}/tests/e11-worktree-consistency.sh ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/memory_test.db ${E11_DIR}/worktree_a ${E11_DIR}/worktree_b)
 
 # E11-06: Projeto não registrado recebe identidade provisória (jamais fallback 'CRIVO')
 add_test(NAME e11_06_provisional_identity COMMAND crivo context --target ${E11_DIR}/unknown_json_only --db ${CMAKE_BINARY_DIR}/memory_test.db --json)
@@ -315,23 +306,25 @@ set_tests_properties(e11_07_no_relevant_experiences PROPERTIES
   PASS_REGULAR_EXPRESSION "\"memory_status\":\"NO_RELEVANT_EXPERIENCES\"")
 
 # E11-08: Perfil inexistente no check resulta em BLOCKED sem substituição silenciosa
-add_test(NAME e11_08_nonexistent_profile_blocked COMMAND crivo check --target ${CMAKE_SOURCE_DIR}/catalog --profile perfil_inexistente_xyz --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_nonexistent --db ${CMAKE_BINARY_DIR}/check_test.db)
-set_tests_properties(e11_08_nonexistent_profile_blocked PROPERTIES WILL_FAIL TRUE)
+add_test(NAME e11_08_nonexistent_profile_blocked COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${CMAKE_SOURCE_DIR}/catalog' --profile perfil_inexistente_xyz --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence_nonexistent' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK BLOCKED' <<<\"$out\"")
 
 # E11-09: Oráculo deliberadamente reprovado resulta em FAIL (jamais PASS)
-add_test(NAME e11_09_bad_oracle_fails COMMAND crivo check --target ${E11_DIR}/bad_oracle_target --profile pilot-e1 --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_bad_oracle --db ${CMAKE_BINARY_DIR}/check_test.db)
-set_tests_properties(e11_09_bad_oracle_fails PROPERTIES WILL_FAIL TRUE)
+add_test(NAME e11_09_bad_oracle_fails COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${E11_DIR}/bad_oracle_target' --profile pilot-e1 --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence_bad_oracle' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK FAIL' <<<\"$out\"")
 
 # E11-10: Cliente MCP com argumentos inválidos retorna erro estruturado sem crash
 add_test(NAME e11_10_mcp_invalid_args COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"dev_context\",\"arguments\":12345}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
 set_tests_properties(e11_10_mcp_invalid_args PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"jsonrpc\":\"2.0\"")
+  PASS_REGULAR_EXPRESSION "\"code\":-32602")
 
 # E11-11: Path Traversal fora do escopo no MCP é rejeitado (ACCESS_DENIED_OUT_OF_SCOPE)
-add_test(NAME e11_11_mcp_scope_denied COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"dev_context\",\"arguments\":{\"target_path\":\"../../../../etc/passwd\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
+add_test(NAME e11_11_mcp_scope_denied COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"dev_context\",\"arguments\":{\"target_path\":\"/etc\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db --workspace-root '${E11_DIR}'")
 set_tests_properties(e11_11_mcp_scope_denied PROPERTIES
   PASS_REGULAR_EXPRESSION "ACCESS_DENIED_OUT_OF_SCOPE")
 
 # E11-12: Sandbox indisponível quando exigida resulta em BLOCKED
-add_test(NAME e11_12_sandbox_unavailable_blocked COMMAND crivo check --target ${CMAKE_SOURCE_DIR}/catalog --profile pilot-e1 --backend podman --catalog ${CMAKE_SOURCE_DIR}/catalog --evidence-dir ${CMAKE_BINARY_DIR}/check_evidence_no_sbx --db ${CMAKE_BINARY_DIR}/check_test.db)
-set_tests_properties(e11_12_sandbox_unavailable_blocked PROPERTIES WILL_FAIL TRUE)
+add_test(NAME e11_12_sandbox_unavailable_blocked COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${CMAKE_SOURCE_DIR}/catalog' --profile pilot-e1 --backend host_isolated --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence_no_sbx' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK BLOCKED' <<<\"$out\"")
+
+# E11-13: Versao MCP usada pelo Antigravity e negociada sem erro
+add_test(NAME e11_13_mcp_antigravity_version COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"antigravity\",\"version\":\"test\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db")
+set_tests_properties(e11_13_mcp_antigravity_version PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"protocolVersion\":\"2025-11-25\"")

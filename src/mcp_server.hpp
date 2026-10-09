@@ -10,6 +10,7 @@ namespace crivo::mcp {
  * @param catalog_dir Caminho para o diretório de catálogo do CRIVO.
  * @return Código de saída (0 em encerramento limpo).
  */
-int run_stdio_server(const std::string& db_path, const std::string& catalog_dir = "catalog");
+int run_stdio_server(const std::string& db_path, const std::string& catalog_dir = "catalog",
+                     const std::string& workspace_root = ".");
 
 } // namespace crivo::mcp

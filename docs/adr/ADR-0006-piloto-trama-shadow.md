@@ -10,12 +10,14 @@ O adaptador CTest foi validado primeiro com fixture sintética. O próximo passo
 
 ## Decisão
 
-1. `./crivo.sh pilot-trama` é fluxo explícito e opt-in.
+1. `./crivo.sh pilot-project <manifesto-local.json>` é fluxo genérico, explícito e opt-in; identidade e localização do projeto são admitidas em runtime, não codificadas no CRIVO.
 2. CMake configura e compila TRAMA em `build/pilots/TRAMA`, controlado pelo CRIVO.
 3. Adaptador invoca `ctest` por `argv` estruturado, sem shell, sob raiz canônica autorizada e timeout finito.
 4. Cada execução recebe diretório próprio em `.run/evidence/TRAMA/<UTC>-<pid>` com descoberta, JUnit, evidência SHA-256 e contexto de revisão Git.
-5. Modo é `shadow`: resultado informa; não altera TRAMA, não promove versão e não constitui certificação.
-6. Worktree suja é registrada, não ocultada nem automaticamente rejeitada. Isso preserva estado observado conforme REA e proveniência temporal conforme RIT.
+5. CRIVO indexa execução e artefato em `external_runs` e `evidence_index` no SQLite local; reprocessamento do mesmo `evidence_id` é idempotente.
+6. Modo é `shadow`: resultado informa; não altera TRAMA, não promove versão e não constitui certificação.
+7. Worktree suja é registrada, não ocultada nem automaticamente rejeitada. Isso preserva estado observado conforme REA e proveniência temporal conforme RIT.
+
 
 ## Limites e riscos residuais
 

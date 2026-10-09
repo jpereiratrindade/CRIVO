@@ -27,7 +27,7 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
@@ -88,6 +88,9 @@ int main(int argc, char** argv) {
     std::string evidence_dir = ".run/evidence";
     std::string project_id = "local-project";
     std::string workspace_root = "";
+    std::string record_db = "";
+    std::string source_revision = "unknown";
+    std::string source_worktree = "unknown";
     unsigned int timeout_seconds = 0;
     bool dry_run = false;
     bool closed_world = false;
@@ -103,6 +106,9 @@ int main(int argc, char** argv) {
       else if (a == "--evidence-dir" && i + 1 < argc) evidence_dir = argv[++i];
       else if (a == "--project" && i + 1 < argc) project_id = argv[++i];
       else if (a == "--workspace-root" && i + 1 < argc) workspace_root = argv[++i];
+      else if (a == "--record-db" && i + 1 < argc) record_db = argv[++i];
+      else if (a == "--source-revision" && i + 1 < argc) source_revision = argv[++i];
+      else if (a == "--source-worktree" && i + 1 < argc) source_worktree = argv[++i];
       else if (a == "--timeout" && i + 1 < argc) {
         const auto n = std::stoul(argv[++i]);
         if (n < 1 || n > 86400) throw std::runtime_error("Timeout invalido (1..86400 segundos)");
@@ -157,6 +163,10 @@ int main(int argc, char** argv) {
     }
     if (command == "runs") {
       std::cout << crivo::query_json(db, "runs") << "\n";
+      return 0;
+    }
+    if (command == "external-runs") {
+      std::cout << crivo::query_external_runs(db) << "\n";
       return 0;
     }
     if (command == "serve") {
@@ -339,6 +349,28 @@ int main(int argc, char** argv) {
           if (!res.success) {
             std::cerr << "CRIVO ADAPTER CTEST RUN FAILED: " << res.error_message << "\n";
             return 2;
+          }
+          if (!record_db.empty()) {
+            crivo::ExternalRunRecord record;
+            record.evidence_id = res.evidence_id;
+            record.project_id = res.project_id;
+            record.mode = "shadow";
+            record.source_revision = source_revision;
+            record.source_worktree = source_worktree;
+            record.status = res.failed == 0 ? "PASS" : "FAIL";
+            record.started_at = res.start_utc;
+            record.ended_at = res.end_utc;
+            record.duration_ms = static_cast<long long>(res.duration_seconds * 1000.0);
+            record.total = static_cast<long long>(res.total);
+            record.passed = static_cast<long long>(res.passed);
+            record.failed = static_cast<long long>(res.failed);
+            record.skipped = static_cast<long long>(res.skipped);
+            record.adapter = "ctest";
+            record.adapter_version = res.ctest_version;
+            record.evidence_path = res.evidence_json_path;
+            record.junit_path = res.junit_path;
+            record.junit_sha256 = res.junit_sha256;
+            crivo::record_external_run(record_db, record);
           }
           std::cout << res.evidence_json_content << "\n";
           return 0;

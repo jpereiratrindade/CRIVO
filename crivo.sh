@@ -6,9 +6,9 @@ TOOLBOX_NAME=${CRIVO_TOOLBOX:-crivo-dev}
 
 if [[ ${1:-} == "--inside-toolbox" ]]; then
   shift
-elif [[ ${1:-} == "pilot-trama" ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
+elif [[ ${1:-} == "pilot-project" ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   "$SCRIPT_DIR/crivo.sh" build
-  exec "$SCRIPT_DIR/scripts/trama-pilot.sh"
+  exec "$SCRIPT_DIR/scripts/project-pilot.sh" "${2:-}"
 elif [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   exec toolbox run --container "$TOOLBOX_NAME" \
     "$SCRIPT_DIR/crivo.sh" --inside-toolbox "$@"
@@ -57,22 +57,22 @@ Uso: ./crivo.sh [comando]
   init        Inicializa banco local legado
   run         Executa perfil core
   runs        Lista execuções registradas
+  external-runs Lista execuções de projetos externos e evidências indexadas
   events      Lista trilha de auditoria e eventos de ciclo de vida
-  pilot-trama Compila e executa testes CTest do TRAMA em modo shadow
+  pilot-project <manifesto> Executa projeto externo declarado, em modo shadow
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
 
 Variáveis: CRIVO_TOOLBOX, CRIVO_BUILD_DIR, CRIVO_DB, CRIVO_PORT, CRIVO_JOBS,
-           CRIVO_TRAMA_SOURCE, CRIVO_TRAMA_BUILD, CRIVO_TRAMA_EVIDENCE,
-           CRIVO_TRAMA_TIMEOUT.
+           CRIVO_PROJECT_BUILD, CRIVO_PROJECT_EVIDENCE.
 EOF
 }
 
 case "$COMMAND" in
   up|all)
     build
-    printf '\n=== [1/5] Executando CTest (31 testes) ===\n'
+    printf '\n=== [1/5] Executando CTest (36 testes) ===\n'
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     printf '\n=== [2/5] Validando Catálogo Estrito ===\n'
     "$BUILD_DIR/crivo" registry validate --dir catalog
@@ -115,9 +115,9 @@ case "$COMMAND" in
     ensure_database
     "$BUILD_DIR/crivo" events list --db "$DB_FILE"
     ;;
-  pilot-trama)
+  pilot-project)
     build
-    exec "$SCRIPT_DIR/scripts/trama-pilot.sh"
+    exec "$SCRIPT_DIR/scripts/project-pilot.sh" "${2:-}"
     ;;
   init)
     ensure_binary
@@ -130,6 +130,10 @@ case "$COMMAND" in
   runs)
     ensure_database
     "$BUILD_DIR/crivo" runs --db "$DB_FILE"
+    ;;
+  external-runs)
+    ensure_database
+    "$BUILD_DIR/crivo" external-runs --db "$DB_FILE"
     ;;
   serve)
     ensure_database

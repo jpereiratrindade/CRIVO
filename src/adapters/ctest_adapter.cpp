@@ -355,7 +355,7 @@ CTestExecutionResult run_ctest(const std::string& build_dir,
   res.skipped = skipped;
   res.passed = (total >= (res.failed + res.skipped)) ? (total - res.failed - res.skipped) : 0;
 
-  res.evidence_id = "evidence-" + project_id + "-" + res.start_utc;
+  res.evidence_id = "evidence-" + project_id + "-" + res.start_utc + "-" + res.junit_sha256.substr(0, 12);
 
   // Gerar evidence.json
   json::object ev_obj;

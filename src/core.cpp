@@ -202,6 +202,77 @@ void initialize_db(const std::string& path) {
      "status TEXT NOT NULL, detail TEXT NOT NULL, duration_ms INTEGER NOT NULL, "
      "created_at TEXT NOT NULL);");
   exec(db.get(),"CREATE INDEX IF NOT EXISTS idx_runs_latest ON runs(created_at DESC,id DESC);");
+  exec(db.get(),"CREATE TABLE IF NOT EXISTS external_runs ("
+     "run_id TEXT PRIMARY KEY, project_id TEXT NOT NULL, mode TEXT NOT NULL, "
+     "source_revision TEXT NOT NULL, source_worktree TEXT NOT NULL, status TEXT NOT NULL, "
+     "total INTEGER NOT NULL, passed INTEGER NOT NULL, failed INTEGER NOT NULL, skipped INTEGER NOT NULL, "
+     "started_at TEXT NOT NULL, ended_at TEXT NOT NULL, duration_ms INTEGER NOT NULL, "
+     "adapter TEXT NOT NULL, adapter_version TEXT NOT NULL, recorded_at TEXT NOT NULL);");
+  exec(db.get(),"CREATE INDEX IF NOT EXISTS idx_external_runs_project_time "
+     "ON external_runs(project_id,started_at DESC);");
+  exec(db.get(),"CREATE TABLE IF NOT EXISTS evidence_index ("
+     "evidence_id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES external_runs(run_id), "
+     "evidence_path TEXT NOT NULL, artifact_path TEXT NOT NULL, artifact_format TEXT NOT NULL, "
+     "artifact_sha256 TEXT NOT NULL, evidence_state TEXT NOT NULL, recorded_at TEXT NOT NULL);");
+}
+
+void record_external_run(const std::string& path,const ExternalRunRecord& run) {
+  initialize_db(path);
+  auto db=open_db(path);
+  exec(db.get(),"PRAGMA foreign_keys=ON;");
+  exec(db.get(),"BEGIN IMMEDIATE;");
+  try {
+    auto st=prepare(db.get(),"INSERT INTO external_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) "
+      "ON CONFLICT(run_id) DO UPDATE SET project_id=excluded.project_id,mode=excluded.mode,"
+      "source_revision=excluded.source_revision,source_worktree=excluded.source_worktree,status=excluded.status,"
+      "total=excluded.total,passed=excluded.passed,failed=excluded.failed,skipped=excluded.skipped,"
+      "started_at=excluded.started_at,ended_at=excluded.ended_at,duration_ms=excluded.duration_ms,"
+      "adapter=excluded.adapter,adapter_version=excluded.adapter_version;");
+    bind_text(st.get(),1,run.evidence_id); bind_text(st.get(),2,run.project_id);
+    bind_text(st.get(),3,run.mode); bind_text(st.get(),4,run.source_revision);
+    bind_text(st.get(),5,run.source_worktree); bind_text(st.get(),6,run.status);
+    sqlite3_bind_int64(st.get(),7,run.total); sqlite3_bind_int64(st.get(),8,run.passed);
+    sqlite3_bind_int64(st.get(),9,run.failed); sqlite3_bind_int64(st.get(),10,run.skipped);
+    bind_text(st.get(),11,run.started_at); bind_text(st.get(),12,run.ended_at);
+    sqlite3_bind_int64(st.get(),13,run.duration_ms); bind_text(st.get(),14,run.adapter);
+    bind_text(st.get(),15,run.adapter_version);
+    if(sqlite3_step(st.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db.get()));
+
+    auto ev=prepare(db.get(),"INSERT INTO evidence_index VALUES(?,?,?,?,?,?,'available',strftime('%Y-%m-%dT%H:%M:%fZ','now')) "
+      "ON CONFLICT(evidence_id) DO UPDATE SET evidence_path=excluded.evidence_path,"
+      "artifact_path=excluded.artifact_path,artifact_format=excluded.artifact_format,"
+      "artifact_sha256=excluded.artifact_sha256,evidence_state=excluded.evidence_state;");
+    bind_text(ev.get(),1,run.evidence_id); bind_text(ev.get(),2,run.evidence_id);
+    bind_text(ev.get(),3,run.evidence_path); bind_text(ev.get(),4,run.junit_path);
+    bind_text(ev.get(),5,"junit_xml"); bind_text(ev.get(),6,run.junit_sha256);
+    if(sqlite3_step(ev.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db.get()));
+    exec(db.get(),"COMMIT;");
+  } catch (...) { exec(db.get(),"ROLLBACK;"); throw; }
+}
+
+std::string query_external_runs(const std::string& path) {
+  auto db=open_db(path,true);
+  auto st=prepare(db.get(),"SELECT r.run_id,r.project_id,r.mode,r.source_revision,r.source_worktree,"
+    "r.status,r.total,r.passed,r.failed,r.skipped,r.started_at,r.ended_at,r.duration_ms,"
+    "r.adapter,r.adapter_version,e.evidence_path,e.artifact_path,e.artifact_sha256,e.evidence_state "
+    "FROM external_runs r JOIN evidence_index e ON e.run_id=r.run_id ORDER BY r.started_at DESC LIMIT 100;");
+  std::string out="[";
+  while(sqlite3_step(st.get())==SQLITE_ROW) {
+    if(out.size()>1) out+=',';
+    out+="{\"run_id\":\""+json_escape(str(st.get(),0))+"\",\"project_id\":\""+json_escape(str(st.get(),1))+
+      "\",\"mode\":\""+json_escape(str(st.get(),2))+"\",\"source_revision\":\""+json_escape(str(st.get(),3))+
+      "\",\"source_worktree\":\""+json_escape(str(st.get(),4))+"\",\"status\":\""+json_escape(str(st.get(),5))+
+      "\",\"summary\":{\"total\":"+std::to_string(sqlite3_column_int64(st.get(),6))+
+      ",\"passed\":"+std::to_string(sqlite3_column_int64(st.get(),7))+
+      ",\"failed\":"+std::to_string(sqlite3_column_int64(st.get(),8))+
+      ",\"skipped\":"+std::to_string(sqlite3_column_int64(st.get(),9))+"},\"started_at\":\""+
+      json_escape(str(st.get(),10))+"\",\"ended_at\":\""+json_escape(str(st.get(),11))+
+      "\",\"duration_ms\":"+std::to_string(sqlite3_column_int64(st.get(),12))+
+      ",\"adapter\":\""+json_escape(str(st.get(),13))+"\",\"adapter_version\":\""+json_escape(str(st.get(),14))+
+      "\",\"evidence_path\":\""+json_escape(str(st.get(),15))+"\",\"artifact_path\":\""+json_escape(str(st.get(),16))+
+      "\",\"artifact_sha256\":\""+json_escape(str(st.get(),17))+"\",\"evidence_state\":\""+json_escape(str(st.get(),18))+"\"}";
+  }
+  return out+"]";
 }
 void register_catalog(const std::string& path,const std::vector<TestDefinition>& catalog) {
   auto db=open_db(path);

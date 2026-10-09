@@ -142,3 +142,13 @@ add_test(NAME e4_ctest_enforce_timeout COMMAND crivo adapter ctest run
   --build ${TIMEOUT_FIXTURE_BUILD} --evidence-dir ${CMAKE_BINARY_DIR}/timeout_evidence
   --project timeout-fixture --timeout 1)
 set_tests_properties(e4_ctest_enforce_timeout PROPERTIES WILL_FAIL TRUE TIMEOUT 5)
+
+add_test(NAME e6_external_run_persist COMMAND crivo adapter ctest run
+  --build ${SYNTHETIC_FIXTURE_BUILD} --evidence-dir ${CMAKE_BINARY_DIR}/external_run_evidence
+  --project persistence-fixture --record-db ${CMAKE_BINARY_DIR}/external_runs.db
+  --source-revision fixture-revision --source-worktree clean)
+set_tests_properties(e6_external_run_persist PROPERTIES PASS_REGULAR_EXPRESSION "\"project_id\":\"persistence-fixture\"")
+
+add_test(NAME e6_external_run_query COMMAND crivo external-runs --db ${CMAKE_BINARY_DIR}/external_runs.db)
+set_tests_properties(e6_external_run_query PROPERTIES DEPENDS e6_external_run_persist
+  PASS_REGULAR_EXPRESSION "\"source_revision\":\"fixture-revision\"")

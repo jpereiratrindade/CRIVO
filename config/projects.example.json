@@ -1,9 +1,6 @@
 {
   "schema_version": "crivo.projects/1.0.0",
   "projects": [
-    { "id": "TRAMA", "profiles": ["core", "sqlite", "api", "territorial"], "integration_status": "candidate" },
-    { "id": "ELO", "profiles": ["core", "sqlite", "offline", "hardware"], "integration_status": "candidate" },
-    { "id": "ENTE", "profiles": ["core", "reproducibility"], "integration_status": "candidate" },
-    { "id": "SINAL", "profiles": ["core", "performance", "accessibility"], "integration_status": "candidate" }
+    { "id": "EXAMPLE", "profiles": ["core"], "integration_status": "candidate" }
   ]
 }

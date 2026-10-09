@@ -22,8 +22,9 @@
 - [x] Reconciliação estruturada de execuções órfãs / interrupções (E3)
 - [x] Adaptador CTest com importação de JUnit XML e CTest JSON v1 (E4)
 - [x] Fixture sintética local para verificação isolada de adaptadores (E4)
-- [x] Suíte de 34 testes CTest automatizados (E1 a E4, incluindo workspace, projeto e timeout)
+- [x] Suíte de 36 testes CTest automatizados (E1 a E6, incluindo persistência externa)
 - [x] Piloto TRAMA opt-in em modo shadow, build/evidência segregados, timeout e execução sem shell
+- [x] Índice SQLite de execuções externas e artefatos de evidência
 - [ ] Sandboxing de kernel, recursos e rede reforçado para projetos externos
 - [ ] Segundo projeto-piloto: ELO (Raspberry Pi / offline)
 

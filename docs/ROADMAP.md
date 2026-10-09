@@ -33,13 +33,14 @@
 
 - [x] **ADR-0008**: Inversão do fluxo de solicitação e independência tecnológica dos participantes
 - [x] **ADR-0009**: Subsistema de sandboxes efêmeras e isolamento por desenho
+- [x] **ADR-0010**: CRIVO como Estaleiro Federado de Engenharia e Aprendizagem
 - [x] **E1 — Preservação**: Manter 100% das capacidades operacionais v0.1/v0.2 e integridade da suíte
 - [x] **E2 — Inversão do fluxo**: Implementar CLI `crivo check` para solicitação sob demanda pelo desenvolvimento
 - [x] **E3 — Independência**: Oráculos CRIVO-native e adaptadores CLI sem dependência de CTest/CMake no participante
 - [x] **E4 — Isolamento**: Subsistema de Sandboxes efêmeras com backends Bubblewrap e Podman rootless no Linux (41 testes CTest)
-- [ ] **E5 — Evidências**: Ampliação de telemetria, consumo de recursos e proveniência estrita
+- [ ] **E5 — Evidências & Memória**: Ampliação de telemetria, proveniência estrita e índice de memória federada (FTS5 SQLite)
 - [ ] **E6 — Piloto TRAMA-RS**: Fluxo completo sob demanda em sandbox para o TRAMA-RS
-- [ ] **E7 — Interface SisTer**: Acompanhamento, histórico de sandboxes e diagnósticos no dashboard Web
+- [ ] **E7 — Interface SisTer & MCP**: Acompanhamento, histórico de sandboxes e consultas contextuais para IDEs e LLMs
 
 ## v1.0.0 · Critérios de maturidade, não promessa
 

@@ -113,6 +113,7 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
   - [ADR-0007 — Verificação externa CRIVO-native](docs/adr/ADR-0007-verificacao-externa-crivo-native.md)
   - [ADR-0008 — Inversão do fluxo de solicitação e independência tecnológica](docs/adr/ADR-0008-inversao-de-fluxo-verificacao-sob-demanda.md)
   - [ADR-0009 — Subsistema de sandboxes efêmeras e isolamento por desenho](docs/adr/ADR-0009-subsistema-sandboxes-efemeras.md)
+  - [ADR-0010 — CRIVO como Estaleiro Federado de Engenharia e Aprendizagem](docs/adr/ADR-0010-crivo-como-estaleiro-federado-de-engenharia-e-aprendizagem.md)
 - Relatórios Factuais de Evidência:
   - [E0 — Baseline v0.1.0](docs/evidence/E0-baseline-2026-10-09.md)
   - [E1 — Validação Estrita do Repertório Internacional](docs/evidence/E1-registry-validation-2026-10-09.md)

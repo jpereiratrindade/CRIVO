@@ -1,0 +1,9 @@
+{
+  "schema_version": "crivo.pilot-context/1.0.0",
+  "project_id": "NATIVE-FIXTURE",
+  "mode": "shadow",
+  "source_revision": "fixture-native-revision",
+  "source_worktree": "clean",
+  "discovery": null,
+  "evidence": "evidence.json"
+}

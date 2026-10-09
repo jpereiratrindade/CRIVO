@@ -26,6 +26,7 @@ std::string query_service_json(const std::string& db, const std::string& id,
                                bool implemented_only=false);
 int run_profile(const std::string& db, const std::string& catalog_file, const std::string& profile);
 void record_external_run(const std::string& db, const ExternalRunRecord& run);
+void record_external_evidence(const std::string& db, const std::string& evidence_dir);
 std::string query_external_runs(const std::string& db);
 void serve(const std::string& db, const std::string& web_directory,
            const std::string& bind_address, unsigned short port);

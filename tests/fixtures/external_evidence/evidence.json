@@ -1,0 +1,19 @@
+{
+  "schema_version": "crivo.evidence/1.0.0",
+  "evidence_id": "evidence-NATIVE-FIXTURE-static",
+  "project_id": "NATIVE-FIXTURE",
+  "executor": { "adapter": "crivo-native", "version": "1.0.0" },
+  "timing": {
+    "start_utc": "2026-10-09T00:00:00Z",
+    "end_utc": "2026-10-09T00:00:01Z",
+    "duration_seconds": 1.0
+  },
+  "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0 },
+  "artifacts": [
+    {
+      "path": "junit.xml",
+      "format": "junit_xml",
+      "sha256": "159d5990efcd2e2601262a29b12c95540c8b42ab991b5216b1dab6b7d76bb393"
+    }
+  ]
+}

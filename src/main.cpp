@@ -27,7 +27,7 @@ std::vector<std::string> split_comma(const std::string& s) {
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
-      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
+      std::cerr << "Uso: crivo <init|catalog|services|run|runs|external-runs|external-record|serve|selftest|registry|plan|events|adapter> [opcoes]\n";
       return 2;
     }
     const std::string command = argv[1];
@@ -167,6 +167,11 @@ int main(int argc, char** argv) {
     }
     if (command == "external-runs") {
       std::cout << crivo::query_external_runs(db) << "\n";
+      return 0;
+    }
+    if (command == "external-record") {
+      crivo::record_external_evidence(db, evidence_dir);
+      std::cout << "CRIVO EXTERNAL EVIDENCE RECORDED PASS\n";
       return 0;
     }
     if (command == "serve") {

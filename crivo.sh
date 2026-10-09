@@ -6,8 +6,11 @@ TOOLBOX_NAME=${CRIVO_TOOLBOX:-crivo-dev}
 
 if [[ ${1:-} == "--inside-toolbox" ]]; then
   shift
-elif [[ ${1:-} == "pilot-project" ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
+elif [[ ( ${1:-} == "pilot-project" || ${1:-} == "verify-project" ) ]] && [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   "$SCRIPT_DIR/crivo.sh" build
+  if [[ ${1:-} == "verify-project" ]]; then
+    exec "$SCRIPT_DIR/scripts/project-verify.sh" "${2:-}"
+  fi
   exec "$SCRIPT_DIR/scripts/project-pilot.sh" "${2:-}"
 elif [[ ! -f /usr/include/boost/asio.hpp ]] && command -v toolbox >/dev/null 2>&1; then
   exec toolbox run --container "$TOOLBOX_NAME" \
@@ -60,6 +63,7 @@ Uso: ./crivo.sh [comando]
   external-runs Lista execuções de projetos externos e evidências indexadas
   events      Lista trilha de auditoria e eventos de ciclo de vida
   pilot-project <manifesto> Executa projeto externo declarado, em modo shadow
+  verify-project <manifesto> Executa testes CRIVO-native; alvo nao precisa ter testes
   serve       Web local (127.0.0.1:8765)
   serve-lan   Web na rede local (0.0.0.0:8765; sem autenticação/TLS)
   status      Mostra ambiente, banco e endereço de rede
@@ -72,7 +76,7 @@ EOF
 case "$COMMAND" in
   up|all)
     build
-    printf '\n=== [1/5] Executando CTest (36 testes) ===\n'
+    printf '\n=== [1/5] Executando CTest (38 testes) ===\n'
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     printf '\n=== [2/5] Validando Catálogo Estrito ===\n'
     "$BUILD_DIR/crivo" registry validate --dir catalog
@@ -118,6 +122,10 @@ case "$COMMAND" in
   pilot-project)
     build
     exec "$SCRIPT_DIR/scripts/project-pilot.sh" "${2:-}"
+    ;;
+  verify-project)
+    build
+    exec "$SCRIPT_DIR/scripts/project-verify.sh" "${2:-}"
     ;;
   init)
     ensure_binary

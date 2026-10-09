@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "registry/lifecycle.hpp"
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -248,6 +249,41 @@ void record_external_run(const std::string& path,const ExternalRunRecord& run) {
     if(sqlite3_step(ev.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db.get()));
     exec(db.get(),"COMMIT;");
   } catch (...) { exec(db.get(),"ROLLBACK;"); throw; }
+}
+
+void record_external_evidence(const std::string& path,const std::string& evidence_dir) {
+  const auto dir=std::filesystem::canonical(evidence_dir);
+  boost::property_tree::ptree evidence,context;
+  boost::property_tree::read_json((dir/"evidence.json").string(),evidence);
+  boost::property_tree::read_json((dir/"pilot-context.json").string(),context);
+  if(evidence.get<std::string>("schema_version")!="crivo.evidence/1.0.0" ||
+     context.get<std::string>("schema_version")!="crivo.pilot-context/1.0.0")
+    throw std::runtime_error("Schema de evidencia externa invalido");
+  ExternalRunRecord run;
+  run.evidence_id=evidence.get<std::string>("evidence_id");
+  run.project_id=evidence.get<std::string>("project_id");
+  if(run.project_id!=context.get<std::string>("project_id"))
+    throw std::runtime_error("Projeto divergente entre evidencia e contexto");
+  run.mode=context.get<std::string>("mode");
+  run.source_revision=context.get<std::string>("source_revision");
+  run.source_worktree=context.get<std::string>("source_worktree");
+  run.total=evidence.get<long long>("summary.total");
+  run.passed=evidence.get<long long>("summary.passed");
+  run.failed=evidence.get<long long>("summary.failed");
+  run.skipped=evidence.get<long long>("summary.skipped");
+  run.status=run.failed==0?"PASS":"FAIL";
+  run.started_at=evidence.get<std::string>("timing.start_utc");
+  run.ended_at=evidence.get<std::string>("timing.end_utc");
+  run.duration_ms=static_cast<long long>(evidence.get<double>("timing.duration_seconds")*1000.0);
+  run.adapter=evidence.get<std::string>("executor.adapter");
+  run.adapter_version=evidence.get<std::string>("executor.version");
+  const auto artifact=evidence.get_child("artifacts").begin()->second;
+  run.junit_path=(dir/artifact.get<std::string>("path")).string();
+  run.junit_sha256=artifact.get<std::string>("sha256");
+  const auto actual=registry::compute_sha256_hex(read_file(run.junit_path));
+  if(actual!=run.junit_sha256) throw std::runtime_error("SHA-256 do artefato nao confere");
+  run.evidence_path=(dir/"evidence.json").string();
+  record_external_run(path,run);
 }
 
 std::string query_external_runs(const std::string& path) {

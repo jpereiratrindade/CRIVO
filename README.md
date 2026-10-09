@@ -19,13 +19,14 @@ O script detecta a ausência do Boost no host e usa automaticamente a Toolbox
 `crivo-dev` (ou a indicada por `CRIVO_TOOLBOX`):
 
 ```bash
-# Executa build, 36 testes CTest, validação estrita, importação, run e sobe o servidor web
+# Executa build, 38 testes CTest, validação estrita, importação, run e sobe o servidor web
 ./crivo.sh
 ```
 
 Outros comandos do script:
-- `./crivo.sh test` — Executa toda a suíte CTest (36 testes).
+- `./crivo.sh test` — Executa toda a suíte CTest (38 testes).
 - `./crivo.sh pilot-project <manifesto-local.json>` — Executa projeto admitido em runtime, sem conhecimento prévio no código ou catálogo.
+- `./crivo.sh verify-project <admissao-local.json>` — Compila alvo sem testes próprios e executa verificações CRIVO-native sobre CLI, SQLite e HTTP.
 - `./crivo.sh external-runs` — Consulta índice SQLite de execuções externas e evidências.
 - `./crivo.sh validate` — Valida schemas JSON v1.0.0 e integridade referencial.
 - `./crivo.sh plan` — Gera e exibe o plano de teste resolvido.
@@ -95,6 +96,7 @@ A interface é **somente leitura**, sem endpoint para execução remota, altera�
 - **Ciclo de Vida e Auditoria (E3):** Trilha append-only de eventos de ciclo de vida com digest SHA-256 canônico e reconciliação de execuções órfãs (`RUN_INTERRUPTED`).
 - **Adaptador CTest (E4):** Descoberta JSON v1 (`kind=ctestInfo`) e execução isolada com emissão de JUnit XML e metadados de evidência auditáveis, validada contra fixture sintética local (`tests/fixtures/ctest`).
 - **Piloto TRAMA:** Integração opt-in em modo `shadow`, build segregado sob CRIVO, execução sem shell no adaptador, timeout, evidência por execução e índice persistente no SQLite do CRIVO. Não constitui sandbox de kernel nem gate do TRAMA.
+- **Verificação nativa externa:** Projetos podem ser avaliados sem CTest nem código de teste próprio. Manifesto local liga interfaces do alvo; critérios, sequência, oráculos e evidência pertencem ao CRIVO.
 - **Próximos passos:** Isolamento de kernel/recursos/rede reforçado e segundo piloto ELO.
 
 ## Referências de arquitetura e decisões

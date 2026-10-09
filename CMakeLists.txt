@@ -152,3 +152,14 @@ set_tests_properties(e6_external_run_persist PROPERTIES PASS_REGULAR_EXPRESSION 
 add_test(NAME e6_external_run_query COMMAND crivo external-runs --db ${CMAKE_BINARY_DIR}/external_runs.db)
 set_tests_properties(e6_external_run_query PROPERTIES DEPENDS e6_external_run_persist
   PASS_REGULAR_EXPRESSION "\"source_revision\":\"fixture-revision\"")
+
+add_test(NAME e7_native_evidence_record COMMAND crivo external-record
+  --db ${CMAKE_BINARY_DIR}/native_external_runs.db
+  --evidence-dir ${CMAKE_SOURCE_DIR}/tests/fixtures/external_evidence)
+set_tests_properties(e7_native_evidence_record PROPERTIES
+  PASS_REGULAR_EXPRESSION "CRIVO EXTERNAL EVIDENCE RECORDED PASS")
+
+add_test(NAME e7_native_evidence_query COMMAND crivo external-runs
+  --db ${CMAKE_BINARY_DIR}/native_external_runs.db)
+set_tests_properties(e7_native_evidence_query PROPERTIES DEPENDS e7_native_evidence_record
+  PASS_REGULAR_EXPRESSION "\"adapter\":\"crivo-native\"")

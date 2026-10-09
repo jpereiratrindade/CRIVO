@@ -23,10 +23,10 @@
   ],
   "choice": "Implementação de acquire_reentrant_lock associado a condition_variable por thread, PRAGMA busy_timeout=5000 no SQLite WAL, e cálculo de digest canônico das intenções abertas (basis_intentions_digest) registrado no evento EventPlanProposed e validado em apply_plan.",
   "procedure": "1. Proteger todas as transações com ledger_.with_exclusive_lock.\n2. Computar basis_intentions_digest antes de gerar a proposta.\n3. Persistir basis_intentions_digest e as_of_sequence no evento PLAN_PROPOSED no SQLite.\n4. Em apply_plan, recalcular o digest das intenções abertas e rejeitar com PLAN_STALE em caso de divergência.",
-  "observed_result": "100% de sucesso no teste de estresse de 6 threads concorrentes com 240 eventos persistidos estritamente em ordem monotônica, e rejeição fidedigna de planos quando intenções divergem antes do consentimento do usuário.",
+  "observed_result": "100% de sucesso na bateria de qualificação formal com 7 critérios: digest não-vazio e as_of_sequence íntegro em trigger_automation e tick, invalidação com PLAN_STALE após adição/conclusão de intenções, aplicação em estado inalterado e preservação total após reabertura do Ledger de disco.",
   "evidence_ref": {
-    "evidence_id": "evidence-lume-2026-10-09T19:30:22Z-e7d3b1e1348b",
-    "sha256": "e7d3b1e1348be96ba84c1d9fff48c264db2b6cc161449c2fa16f35294aabb72d",
+    "evidence_id": "evidence-lume-2026-10-09T20:11:16Z-8f1bbe80a690",
+    "sha256": "8f1bbe80a690622d3eb765159e6ab26c46a64f759489a950e2737036d3867442",
     "path": ".run/evidence/evidence.json"
   },
   "applicability_tags": [

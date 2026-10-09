@@ -105,6 +105,15 @@ evidência SHA-256 e `crivo-analysis.json` para observações HTTP. O contrato d
 último fica em `schemas/analysis/1.0.0.schema.json`. Insumo ausente não gera
 aprovação: resulta em `NOT_APPLICABLE` ou `BLOCKED`.
 
+Consumidores MCP podem chamar `test_matrix` com `target_path` e `profile`. A
+ferramenta retorna plano, capabilities e aplicabilidade sem executar código. A
+execução permanece deliberadamente fora do MCP somente leitura e ocorre por
+`crivo check`, CI ou adaptador CTest.
+
+Inspeção ignora por padrão `.git`, `node_modules`, `vendor`, `.cache`, `dist`,
+`coverage` e diretórios iniciados por `build`, evitando falsos resultados vindos
+de dependências ou artefatos gerados.
+
 ## Limites deliberados e estado atual
 
 - **Catálogo Internacional e Validação (E1):** Implementados schemas JSON estritos v1.0.0 (`Reference`, `Technique`, `TestSpec`, `TestImplementation`, `Profile`) com checagem de tipos reais, enumerações e integridade referencial cruzada via `Boost.JSON`.

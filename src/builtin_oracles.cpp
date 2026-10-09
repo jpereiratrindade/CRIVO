@@ -25,8 +25,8 @@ const char* to_string(Status s) noexcept {
 static std::vector<fs::path> files(const fs::path& root, const std::string& ext = {}) {
   std::vector<fs::path> out;
   if (!fs::exists(root)) return out;
-  for (const auto& e : fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied))
-    if (e.is_regular_file() && (ext.empty() || e.path().extension() == ext)) out.push_back(e.path());
+  auto scan=fs::recursive_directory_iterator(root,fs::directory_options::skip_permission_denied);
+  for(auto it=scan;it!=fs::recursive_directory_iterator();++it){const auto& e=*it;if(e.is_directory()){auto n=e.path().filename().string();if(n==".git"||n=="node_modules"||n=="vendor"||n==".cache"||n=="dist"||n=="coverage"||n.starts_with("build"))it.disable_recursion_pending();continue;}if(e.is_regular_file()&&(ext.empty()||e.path().extension()==ext))out.push_back(e.path());}
   return out;
 }
 

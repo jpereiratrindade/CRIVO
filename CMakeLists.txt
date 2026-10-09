@@ -330,6 +330,11 @@ add_test(NAME e11_13_mcp_antigravity_version COMMAND bash -c "echo '{\"jsonrpc\"
 set_tests_properties(e11_13_mcp_antigravity_version PROPERTIES
   PASS_REGULAR_EXPRESSION "\"protocolVersion\":\"2025-11-25\"")
 
+# E11-14: consumidor MCP resolve matriz aplicavel sem executar testes
+add_test(NAME e11_14_mcp_test_matrix COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"test_matrix\",\"arguments\":{\"target_path\":\"e12_all_oracles\",\"profile\":\"complete-international-benchmark\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db --catalog '${CMAKE_SOURCE_DIR}/catalog' --workspace-root '${CMAKE_BINARY_DIR}'")
+set_tests_properties(e11_14_mcp_test_matrix PROPERTIES
+  PASS_REGULAR_EXPRESSION "complete-international-benchmark")
+
 # E12: matriz completa de oraculos builtin produz 11 provas reais
 set(E12_DIR ${CMAKE_BINARY_DIR}/e12_all_oracles)
 file(REMOVE_RECURSE ${E12_DIR})

@@ -2,6 +2,8 @@
 #include "dev_context.hpp"
 #include "memory.hpp"
 #include "inspector.hpp"
+#include "registry/validator.hpp"
+#include "registry/plan.hpp"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -113,6 +115,14 @@ static boost::json::array get_tools_list() {
         ));
     }
 
+    // 5. test_matrix
+    {
+        boost::json::object props;
+        props["target_path"] = boost::json::object{{"type", "string"}};
+        props["profile"] = boost::json::object{{"type", "string"}, {"default", "complete-international-benchmark"}};
+        tools.push_back(make_tool_def("test_matrix", "Resolve matriz de testes aplicavel ao alvo sem executar ou mutar.", props));
+    }
+
     return tools;
 }
 
@@ -120,7 +130,8 @@ static boost::json::object handle_tool_call(
     const std::string& tool_name,
     const boost::json::object& args,
     const std::string& db_path,
-    const fs::path& authorized_root)
+    const fs::path& authorized_root,
+    const fs::path& catalog_dir)
 {
     boost::json::object result;
     boost::json::array content;
@@ -140,6 +151,18 @@ static boost::json::object handle_tool_call(
             } else {
                 auto rep = crivo::context::build_dev_context(db_path, resolved_target.string(), proj, q, tag);
                 text_out = crivo::context::serialize_dev_context_json(rep);
+            }
+        } else if (tool_name == "test_matrix") {
+            std::string target=safe_string_arg(args,"target_path",".");
+            std::string profile=safe_string_arg(args,"profile","complete-international-benchmark");
+            fs::path resolved;
+            if(!is_path_safe_and_authorized(target,authorized_root,resolved)) text_out="{\"error\":\"ACCESS_DENIED_OUT_OF_SCOPE\"}";
+            else {
+                registry::RegistryCollection c; registry::ValidationReport v;
+                for(const auto& sub:{"references","techniques","specifications","implementations","profiles"}){fs::path dir=catalog_dir/sub;if(fs::exists(dir))for(const auto& e:fs::recursive_directory_iterator(dir))if(e.is_regular_file()&&e.path().extension()==".json")registry::validate_file(e.path().string(),c,v);}
+                const registry::ProfileRecord* selected=nullptr;for(const auto& [_,p]:c.profiles)if(p.id==profile){selected=&p;break;}
+                if(!v.valid||!selected) text_out="{\"error\":\"INVALID_CATALOG_OR_PROFILE\"}";
+                else {registry::EnvironmentCapabilities env;for(const auto& cap:check::inspect_target(resolved).discovered_capabilities)env.supported.insert(cap);text_out=registry::serialize_test_plan_json(registry::resolve_test_plan(*selected,c,env));}
             }
         } else if (tool_name == "knowledge_query") {
             std::string q = safe_string_arg(args, "query", "");
@@ -263,7 +286,6 @@ static boost::json::object handle_tool_call(
 
 int run_stdio_server(const std::string& db_path, const std::string& catalog_dir,
                      const std::string& workspace_root) {
-    (void)catalog_dir;
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line.empty()) continue;
@@ -350,7 +372,7 @@ int run_stdio_server(const std::string& db_path, const std::string& catalog_dir,
                 } else {
                     boost::json::object t_args;
                     if (params.contains("arguments")) t_args = params.at("arguments").as_object();
-                    resp["result"] = handle_tool_call(t_name, t_args, db_path, workspace_root);
+                    resp["result"] = handle_tool_call(t_name, t_args, db_path, workspace_root, catalog_dir);
                 }
             } else {
                 boost::json::object err;

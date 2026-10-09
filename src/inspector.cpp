@@ -152,7 +152,15 @@ TargetInfo inspect_target(const fs::path& target_path) {
     bool has_cyclonedx = false;
     bool has_tsan = false;
 
-    for (const auto& entry : fs::recursive_directory_iterator(info.root_path, fs::directory_options::skip_permission_denied)) {
+    auto scan = fs::recursive_directory_iterator(info.root_path, fs::directory_options::skip_permission_denied);
+    for (auto it = scan; it != fs::recursive_directory_iterator(); ++it) {
+        const auto& entry = *it;
+        if (entry.is_directory()) {
+            const auto name = entry.path().filename().string();
+            if (name == ".git" || name == "node_modules" || name == "vendor" || name == ".cache" ||
+                name == "dist" || name == "coverage" || name.starts_with("build")) it.disable_recursion_pending();
+            continue;
+        }
         if (entry.is_regular_file()) {
             auto ext = entry.path().extension().string();
             auto filename = entry.path().filename().string();

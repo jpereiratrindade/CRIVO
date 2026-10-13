@@ -377,13 +377,6 @@ int main(int argc, char** argv) {
       }
     }
     if (command == "check") {
-      if (!sandbox_backend.empty() && sandbox_backend != "auto" &&
-          sandbox_backend != "bubblewrap" && sandbox_backend != "podman" &&
-          sandbox_backend != "host_isolated") {
-        std::cerr << "CRIVO CHECK BLOCKED: Backend de sandbox desconhecido: " << sandbox_backend << "\n";
-        return 2;
-      }
-
       crivo::check::CheckOptions opts;
       opts.target_path = target_path.empty() ? "." : target_path;
       opts.profile = profile;

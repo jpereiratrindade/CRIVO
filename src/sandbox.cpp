@@ -64,6 +64,7 @@ static ExecutionResult execute_fork_exec(
     if (pipe(stdout_pipe) != 0 || pipe(stderr_pipe) != 0) {
         result.exit_code = -1;
         result.termination = TerminationReason::BlockedByPolicy;
+        result.isolation_status = "BLOCKED";
         result.stderr_output = "Failed to create pipes for sandbox execution";
         return result;
     }
@@ -76,6 +77,7 @@ static ExecutionResult execute_fork_exec(
         close(stderr_pipe[0]); close(stderr_pipe[1]);
         result.exit_code = -1;
         result.termination = TerminationReason::BlockedByPolicy;
+        result.isolation_status = "BLOCKED";
         result.stderr_output = "Fork failed for sandbox process";
         return result;
     }
@@ -200,6 +202,10 @@ static ExecutionResult execute_fork_exec(
     } else if (WIFEXITED(status)) {
         result.exit_code = WEXITSTATUS(status);
         result.termination = TerminationReason::Normal;
+        if (result.exit_code == 127) {
+            result.termination = TerminationReason::BlockedByPolicy;
+            result.isolation_status = "BLOCKED";
+        }
     } else if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
         result.exit_code = 128 + sig;
@@ -225,6 +231,8 @@ ExecutionResult BubblewrapDriver::execute(
         ExecutionResult r;
         r.exit_code = -1;
         r.termination = TerminationReason::BlockedByPolicy;
+        r.isolation_driver = "bubblewrap";
+        r.isolation_status = "BLOCKED";
         r.stderr_output = "Empty command provided to sandbox";
         return r;
     }
@@ -278,7 +286,9 @@ ExecutionResult BubblewrapDriver::execute(
 
     // Isolations
     bwrap_cmd.push_back("--unshare-all");
-    if (!config.enable_network) {
+    if (config.enable_network) {
+        bwrap_cmd.push_back("--share-net");
+    } else {
         bwrap_cmd.push_back("--unshare-net");
     }
     bwrap_cmd.push_back("--die-with-parent");
@@ -294,6 +304,10 @@ ExecutionResult BubblewrapDriver::execute(
         {"HOME", "/tmp"},
         {"LANG", "C.UTF-8"}
     };
+    const char* port_env = std::getenv("CRIVO_HTTP_PORT");
+    if (port_env) {
+        envs.push_back({"CRIVO_HTTP_PORT", port_env});
+    }
     for (const auto& ev : config.env_vars) {
         envs.push_back(ev);
     }
@@ -329,6 +343,8 @@ ExecutionResult PodmanDriver::execute(
         ExecutionResult r;
         r.exit_code = -1;
         r.termination = TerminationReason::BlockedByPolicy;
+        r.isolation_driver = "podman";
+        r.isolation_status = "BLOCKED";
         r.stderr_output = "Empty command provided to podman sandbox";
         return r;
     }
@@ -377,6 +393,8 @@ ExecutionResult HostIsolatedDriver::execute(
         ExecutionResult r;
         r.exit_code = -1;
         r.termination = TerminationReason::BlockedByPolicy;
+        r.isolation_driver = "host_isolated";
+        r.isolation_status = "BLOCKED";
         r.stderr_output = "Empty command provided to host isolated sandbox";
         return r;
     }
@@ -467,11 +485,21 @@ std::string generate_sandbox_report_json(
     tmpfs_arr.push_back(boost::json::value("/tmp"));
     report["tmpfs_mounts"] = tmpfs_arr;
 
-    boost::json::object lim;
-    lim["timeout_ms"] = static_cast<int64_t>(config.limits.timeout.count());
-    lim["max_memory_mb"] = static_cast<int64_t>(config.limits.max_memory_mb);
-    lim["max_processes"] = static_cast<int64_t>(config.limits.max_processes);
-    report["limits_enforced"] = lim;
+    boost::json::object lim_conf;
+    lim_conf["timeout_ms"] = static_cast<int64_t>(config.limits.timeout.count());
+    lim_conf["max_memory_mb"] = static_cast<int64_t>(config.limits.max_memory_mb);
+    lim_conf["max_processes"] = static_cast<int64_t>(config.limits.max_processes);
+    report["limits_configured"] = lim_conf;
+
+    boost::json::object lim_enf;
+    lim_enf["timeout_ms"] = static_cast<int64_t>(config.limits.timeout.count());
+    if (config.limits.max_memory_mb > 0) {
+        lim_enf["max_memory_mb"] = static_cast<int64_t>(config.limits.max_memory_mb);
+    }
+    if (res.isolation_driver == "host_isolated" && config.limits.max_processes > 0) {
+        lim_enf["max_processes"] = static_cast<int64_t>(config.limits.max_processes);
+    }
+    report["limits_enforced"] = lim_enf;
 
     boost::json::object exec_obj;
     exec_obj["exit_code"] = res.exit_code;
@@ -497,7 +525,7 @@ SandboxQualificationResult qualify_backend(BackendType backend, const fs::path& 
     }
 
     res.backend = std::string(driver->name());
-    res.isolation_status = "ENFORCED";
+    res.isolation_status = "BLOCKED";
 
     fs::path base = temp_dir.empty() ? (fs::temp_directory_path() / ("crivo_sbx_qual_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()))) : temp_dir;
     fs::path ro_target = base / "target_ro";
@@ -609,6 +637,12 @@ SandboxQualificationResult qualify_backend(BackendType backend, const fs::path& 
             res.passed = false;
             break;
         }
+    }
+
+    if (res.passed) {
+        res.isolation_status = (res.backend == "host_isolated" ? "DEGRADED" : "ENFORCED");
+    } else {
+        res.isolation_status = "BLOCKED";
     }
 
     // Cleanup ephemeral qualification files

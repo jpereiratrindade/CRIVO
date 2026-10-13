@@ -13,6 +13,11 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 namespace crivo::oracles {
 namespace fs = std::filesystem;
@@ -262,48 +267,75 @@ static Result tsan(const fs::path& root, const fs::path& workspace) {
 
   // Check applicability traits
   if (!has_concurrency_traits(root)) {
-    return {Status::NotApplicable, "no multithreaded source or TSan report"};
+    return {Status::NotApplicable, "no multithreaded source or TSan report in target"};
   }
 
-  // 2. Active Concurrency & Data Race Probe
-  try {
-    std::atomic<int64_t> counter{0};
-    std::mutex mtx;
-    std::vector<int64_t> guarded_values;
-    std::vector<std::thread> workers;
-    const int num_threads = 8;
-    const int ops_per_thread = 1000;
-
-    for (int t = 0; t < num_threads; ++t) {
-      workers.emplace_back([&, t] {
-        for (int i = 0; i < ops_per_thread; ++i) {
-          counter.fetch_add(1, std::memory_order_relaxed);
-          if ((i % 100) == 0) {
-            std::lock_guard<std::mutex> lock(mtx);
-            guarded_values.push_back(t * ops_per_thread + i);
-          }
-        }
-      });
+  // 2. Active ThreadSanitizer Compilation & Execution on Target Code
+  std::vector<fs::path> target_sources;
+  for (const auto& p : files(root)) {
+    auto ext = p.extension().string();
+    if (ext == ".cpp" || ext == ".c" || ext == ".cc" || ext == ".cxx") {
+      target_sources.push_back(p);
     }
-    for (auto& w : workers) w.join();
+  }
 
-    fs::path tsan_out = workspace / "crivo-tsan-report.txt";
+  if (target_sources.empty()) {
+    return {Status::Blocked, "precondition tsan_binary_compiled not met: target has concurrency traits but no C/C++ sources or TSan report found"};
+  }
+
+  fs::path bin_path = workspace / "crivo_target_tsan_bin";
+  std::string cmd = "clang++ -fsanitize=thread -O1 -g -pthread ";
+  for (const auto& src : target_sources) {
+    cmd += " '" + src.string() + "'";
+  }
+  cmd += " -o '" + bin_path.string() + "' 2>&1";
+
+  FILE* pipe_comp = popen(cmd.c_str(), "r");
+  if (!pipe_comp) {
+    return {Status::Blocked, "failed to invoke compiler for ThreadSanitizer"};
+  }
+  char buf[512];
+  std::string comp_out;
+  while (fgets(buf, sizeof(buf), pipe_comp)) {
+    comp_out += buf;
+  }
+  int comp_rc = pclose(pipe_comp);
+  if (comp_rc != 0 || !fs::exists(bin_path)) {
+    return {Status::Blocked, "precondition tsan_binary_compiled not met: compilation of target code under ThreadSanitizer failed: " + comp_out};
+  }
+
+  std::string run_cmd = "sh -c 'ulimit -v unlimited 2>/dev/null; exec \"" + bin_path.string() + "\"' 2>&1";
+  FILE* pipe_run = popen(run_cmd.c_str(), "r");
+  if (!pipe_run) {
+    return {Status::Blocked, "failed to execute target binary under ThreadSanitizer"};
+  }
+  std::string run_out;
+  while (fgets(buf, sizeof(buf), pipe_run)) {
+    run_out += buf;
+  }
+  int run_rc = pclose(pipe_run);
+
+  fs::path tsan_out = workspace / "crivo-tsan-report.txt";
+  {
     std::ofstream out(tsan_out);
-    out << "CRIVO Active Concurrency & ThreadSanitizer Audit\n"
-        << "Threads executed: " << num_threads << "\n"
-        << "Total atomic ops: " << counter.load() << "\n"
-        << "Guarded synchronizations: " << guarded_values.size() << "\n"
-        << "Data races detected: 0\n"
-        << "Status: CLEAN\n";
-    out.close();
-
-    if (counter.load() == num_threads * ops_per_thread) {
-      return {Status::Pass, "active ThreadSanitizer concurrency probe executed: 0 data races detected"};
-    }
-    return {Status::Fail, "concurrency probe atomic invariant failed"};
-  } catch (const std::exception& e) {
-    return {Status::Fail, std::string("TSan probe execution error: ") + e.what()};
+    out << "CRIVO Active ThreadSanitizer Target Audit\n"
+        << "Target sources compiled: " << target_sources.size() << "\n"
+        << "Execution output:\n" << run_out << "\n"
+        << "Exit code: " << run_rc << "\n";
   }
+
+  if (run_out.find("ThreadSanitizer setrlimit() failed") != std::string::npos ||
+      run_out.find("limited virtual address space") != std::string::npos) {
+    return {Status::Blocked, "precondition tsan_binary_compiled not met: ThreadSanitizer requires unlimited virtual address space: " + run_out};
+  }
+  if (run_out.find("WARNING: ThreadSanitizer") != std::string::npos) {
+    return {Status::Fail, "ThreadSanitizer reported data race in target code"};
+  }
+  if (run_rc != 0) {
+    return {Status::Fail, "Target binary terminated abnormally under ThreadSanitizer (exit " + std::to_string(run_rc) + "): " + run_out};
+  }
+
+  return {Status::Pass, "target compiled and executed under ThreadSanitizer: 0 data races detected"};
 }
 
 static Result provenance(const fs::path& root, const fs::path& workspace) {
@@ -345,8 +377,10 @@ static Result provenance(const fs::path& root, const fs::path& workspace) {
     if (candidate_files.empty()) {
       for (const auto& p : files(root)) {
         candidate_files.push_back(p);
-        if (candidate_files.size() >= 10) break;
       }
+    }
+    if (candidate_files.empty()) {
+      return {Status::Blocked, "precondition evidence_artifacts_persisted not met: no candidate files or artifacts found to verify SHA-256 provenance"};
     }
 
     for (const auto& p : candidate_files) {
@@ -447,41 +481,49 @@ static Result sbom(const fs::path& root, const fs::path& workspace) {
             std::regex re(R"(find_package\s*\(\s*([A-Za-z0-9_]+))");
             std::smatch match;
             if (std::regex_search(line, match, re) && match.size() > 1) {
-              boost::json::object c;
-              c["type"] = "library";
-              c["name"] = match[1].str();
-              c["version"] = "detected";
-              components.push_back(c);
-              found_deps = true;
+              std::string dep_name = match[1].str();
+              if (dep_name != "Threads") {
+                boost::json::object c;
+                c["type"] = "library";
+                c["name"] = dep_name;
+                c["version"] = "detected";
+                components.push_back(c);
+                found_deps = true;
+              }
             }
           }
         }
       }
     }
 
-    if (!found_deps) {
-      boost::json::object c1, c2;
-      c1["type"] = "library";
-      c1["name"] = "sqlite3";
-      c1["version"] = "3.46.0";
-      c2["type"] = "library";
-      c2["name"] = "boost";
-      c2["version"] = "1.83.0";
-      components.push_back(c1);
-      components.push_back(c2);
+    doc["components"] = components;
+
+    if (found_deps) {
+      // Third-party dependencies are present, but no verified vulnerability audit data was provided
+      doc["vulnerabilities"] = boost::json::array{};
+      std::ofstream out(sbom_out);
+      out << boost::json::serialize(doc);
+      return {Status::Blocked, "precondition sbom_manifest_generated: dependencies detected in target, but no verified vulnerability audit data available"};
     }
 
-    doc["components"] = components;
-    doc["vulnerabilities"] = boost::json::array{}; // zero critical/high vulnerabilities
-
+    // Target declares zero third-party dependencies; supply chain attack surface is minimal
+    doc["vulnerabilities"] = boost::json::array{};
     std::ofstream out(sbom_out);
     out << boost::json::serialize(doc);
-    out.close();
-
-    return {Status::Pass, "active CycloneDX SBOM synthesized and audited without high/critical vulnerabilities"};
+    return {Status::Pass, "active CycloneDX SBOM synthesized: target declares zero third-party dependencies"};
   } catch (const std::exception& e) {
     return {Status::Fail, std::string("SBOM synthesizer error: ") + e.what()};
   }
+}
+
+static int get_http_port() {
+  const char* p = std::getenv("CRIVO_HTTP_PORT");
+  if (!p) p = std::getenv("CRIVO_PORT");
+  if (p) {
+    int val = std::atoi(p);
+    if (val > 0 && val < 65536) return val;
+  }
+  return 8765;
 }
 
 static std::optional<boost::json::object> get_or_create_http_observations(const fs::path& root, const fs::path& workspace) {
@@ -500,78 +542,117 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
     return std::nullopt;
   }
 
-  // 2. Active HTTP Provocation Engine: synthesize/record loopback observations
+  // 2. Active HTTP Provocation Engine: probe live server on loopback ONLY if listening
+  int port = get_http_port();
+  int test_sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (test_sock < 0) return std::nullopt;
+
+  struct timeval tv{};
+  tv.tv_sec = 0;
+  tv.tv_usec = 250000; // 250ms timeout
+  setsockopt(test_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  setsockopt(test_sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+  struct sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+  inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+
+  if (connect(test_sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
+    close(test_sock);
+    // Real server is not listening on loopback; DO NOT synthesize fake responses!
+    return std::nullopt;
+  }
+  close(test_sock);
+
+  // Server is reachable; exercise real requests against loopback service
+  auto send_request = [&](const std::string& method, const std::string& path,
+                          const std::string& case_name = "") -> boost::json::object {
+    boost::json::object obs;
+    obs["method"] = method;
+    obs["path"] = path;
+    if (!case_name.empty()) obs["case"] = case_name;
+
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) {
+      obs["status"] = 500;
+      obs["latency_ms"] = 999.0;
+      return obs;
+    }
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+    auto start = std::chrono::steady_clock::now();
+    if (connect(s, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
+      close(s);
+      obs["status"] = 500;
+      obs["latency_ms"] = 999.0;
+      return obs;
+    }
+
+    std::string req = method + " " + path + " HTTP/1.1\r\nHost: 127.0.0.1:" + std::to_string(port) +
+                      "\r\nUser-Agent: CRIVO-Oracle/1.0\r\nConnection: close\r\n\r\n";
+    send(s, req.data(), req.size(), 0);
+
+    char buf[4096];
+    std::string resp;
+    while (true) {
+      ssize_t n = recv(s, buf, sizeof(buf) - 1, 0);
+      if (n <= 0) break;
+      buf[n] = '\0';
+      resp.append(buf, n);
+    }
+    close(s);
+    auto end = std::chrono::steady_clock::now();
+    double latency = std::chrono::duration<double, std::milli>(end - start).count();
+    obs["latency_ms"] = latency;
+
+    int status_code = 500;
+    boost::json::object headers;
+    std::istringstream stream(resp);
+    std::string line;
+    if (std::getline(stream, line)) {
+      std::regex status_re(R"(HTTP/\d\.\d\s+(\d+))");
+      std::smatch m;
+      if (std::regex_search(line, m, status_re) && m.size() > 1) {
+        status_code = std::stoi(m[1].str());
+      }
+    }
+    while (std::getline(stream, line) && line != "\r" && !line.empty()) {
+      auto colon = line.find(':');
+      if (colon != std::string::npos) {
+        std::string k = line.substr(0, colon);
+        std::string v = line.substr(colon + 1);
+        while (!k.empty() && (k.back() == ' ' || k.back() == '\r')) k.pop_back();
+        std::transform(k.begin(), k.end(), k.begin(), ::tolower);
+        while (!v.empty() && (v.front() == ' ' || v.front() == '\t')) v.erase(v.begin());
+        while (!v.empty() && (v.back() == ' ' || v.back() == '\r')) v.pop_back();
+        headers[k] = v;
+      }
+    }
+    obs["status"] = status_code;
+    obs["headers"] = headers;
+    return obs;
+  };
+
   boost::json::object doc;
   boost::json::array obs;
 
-  // Mutating method rejections (POST, PUT, DELETE, PATCH -> 405 Method Not Allowed)
-  for (const char* method : {"POST", "PUT", "DELETE", "PATCH"}) {
-    boost::json::object r;
-    r["method"] = method;
-    r["path"] = "/api/v1/resource";
-    r["status"] = 405;
-    r["latency_ms"] = 0.8;
-    obs.push_back(r);
+  // Mutating methods
+  for (const char* m : {"POST", "PUT", "DELETE", "PATCH"}) {
+    obs.push_back(send_request(m, "/api/v1/resource"));
   }
-
-  // Standard GET with security headers
-  {
-    boost::json::object r;
-    r["method"] = "GET";
-    r["path"] = "/api/v1/resource";
-    r["status"] = 200;
-    r["latency_ms"] = 0.9;
-    boost::json::object h;
-    h["content-security-policy"] = "default-src 'self'";
-    h["x-content-type-options"] = "nosniff";
-    h["cache-control"] = "no-store";
-    r["headers"] = h;
-    obs.push_back(r);
-  }
-
-  // Malicious inputs (CWE-20 / CWE-89 injection payloads -> 400 Bad Request)
-  {
-    boost::json::object h;
-    h["content-security-policy"] = "default-src 'self'";
-    h["x-content-type-options"] = "nosniff";
-    h["cache-control"] = "no-store";
-
-    boost::json::object r1;
-    r1["method"] = "GET";
-    r1["path"] = "/api/v1/resource?file=../../etc/passwd";
-    r1["case"] = "malicious_input";
-    r1["status"] = 400;
-    r1["latency_ms"] = 0.7;
-    r1["headers"] = h;
-    obs.push_back(r1);
-
-    boost::json::object r2;
-    r2["method"] = "GET";
-    r2["path"] = "/api/v1/resource?id=1%27%20OR%201=1--";
-    r2["case"] = "malicious_input";
-    r2["status"] = 400;
-    r2["latency_ms"] = 0.7;
-    r2["headers"] = h;
-    obs.push_back(r2);
-  }
-
-  // Latency SLA budget benchmarks (at least 20 observations with p95 < 20ms)
-  for (int i = 0; i < 25; ++i) {
-    boost::json::object r;
-    r["method"] = "GET";
-    r["path"] = "/api/v1/resource";
-    r["status"] = 200;
-    r["latency_ms"] = 0.5 + (static_cast<double>(i % 5) * 0.2);
-    boost::json::object h;
-    h["content-security-policy"] = "default-src 'self'";
-    h["x-content-type-options"] = "nosniff";
-    h["cache-control"] = "no-store";
-    r["headers"] = h;
-    obs.push_back(r);
+  // Standard GET
+  obs.push_back(send_request("GET", "/api/v1/resource"));
+  // Malicious inputs
+  obs.push_back(send_request("GET", "/api/v1/resource?file=../../etc/passwd", "malicious_input"));
+  obs.push_back(send_request("GET", "/api/v1/resource?id=1%27%20OR%201=1--", "malicious_input"));
+  // Latency observations
+  for (int i = 0; i < 20; ++i) {
+    obs.push_back(send_request("GET", "/api/v1/resource"));
   }
 
   doc["http_observations"] = obs;
-
   try {
     std::ofstream out(p2);
     out << boost::json::serialize(doc);
@@ -583,7 +664,12 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
 
 static Result http_observation(const fs::path& root, const fs::path& workspace, const std::string& mode) {
   auto doc = get_or_create_http_observations(root, workspace);
-  if (!doc || !doc->contains("http_observations")) return {Status::NotApplicable, "no HTTP observations or service"};
+  if (!doc || !doc->contains("http_observations")) {
+    if (has_http_traits(root)) {
+      return {Status::Blocked, "precondition server_listening_loopback not met: no HTTP service listening on loopback and no observation trace available"};
+    }
+    return {Status::NotApplicable, "no HTTP observations or service"};
+  }
   auto& rows = doc->at("http_observations").as_array();
   if (rows.empty()) return {Status::Blocked, "empty HTTP observations"};
 

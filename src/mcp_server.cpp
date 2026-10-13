@@ -40,6 +40,21 @@ static bool is_path_safe_and_authorized(const std::string& path_str, const fs::p
     }
 }
 
+static bool is_file_safe_and_authorized(const std::string& path_str, const fs::path& authorized_root,
+                                        fs::path& resolved) {
+    if (path_str.empty()) return false;
+    try {
+        const fs::path root = fs::canonical(authorized_root);
+        fs::path candidate(path_str);
+        if (candidate.is_relative()) candidate = root / candidate;
+        resolved = fs::canonical(candidate);
+        auto mismatch = std::mismatch(root.begin(), root.end(), resolved.begin(), resolved.end());
+        return mismatch.first == root.end() && fs::is_regular_file(resolved);
+    } catch (...) {
+        return false;
+    }
+}
+
 static boost::json::object make_tool_def(
     const std::string& name,
     const std::string& description,
@@ -347,11 +362,10 @@ static boost::json::object handle_tool_call(
         } else if (tool_name == "memory_promote") {
             std::string sum_path = safe_string_arg(args, "summary_path", "");
             fs::path resolved;
-            if (!is_path_safe_and_authorized(sum_path, authorized_root, resolved) && !fs::exists(sum_path)) {
-                text_out = "{\"error\": \"INVALID_PATH\", \"message\": \"Caminho do resumo invalido\"}";
+            if (!is_file_safe_and_authorized(sum_path, authorized_root, resolved)) {
+                text_out = "{\"error\": \"ACCESS_DENIED_OUT_OF_SCOPE\", \"message\": \"Caminho do resumo fora do escopo autorizado ou invalido\"}";
             } else {
-                std::string target_file = fs::exists(resolved) ? resolved.string() : sum_path;
-                if (memory::promote_qualification_to_experience(db_path, target_file)) {
+                if (memory::promote_qualification_to_experience(db_path, resolved.string())) {
                     text_out = "{\"status\": \"PROMOTED\", \"message\": \"Experiencia factual promovida com sucesso para a memoria federada\"}";
                 } else {
                     text_out = "{\"error\": \"PROMOTION_REJECTED\", \"message\": \"Veredito nao e PASS ou resumo invalido\"}";

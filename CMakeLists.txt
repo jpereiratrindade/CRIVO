@@ -388,6 +388,12 @@ add_test(NAME e13_04_mcp_sandbox_qualify COMMAND bash -c "echo '{\"jsonrpc\":\"2
 set_tests_properties(e13_04_mcp_sandbox_qualify PROPERTIES
   PASS_REGULAR_EXPRESSION "crivo.sandbox-qualification")
 
+# E13-05: Autorizacao estrita de escopo para memory_promote no MCP
+add_test(NAME e13_05_mcp_memory_promote_scope_denied COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"memory_promote\",\"arguments\":{\"summary_path\":\"/etc/passwd\"}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db --workspace-root '${CMAKE_BINARY_DIR}'")
+set_tests_properties(e13_05_mcp_memory_promote_scope_denied PROPERTIES
+  PASS_REGULAR_EXPRESSION "ACCESS_DENIED_OUT_OF_SCOPE")
+
+
 
 
 

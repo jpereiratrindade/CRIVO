@@ -319,6 +319,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
     if (!opts.backend.empty() && opts.backend != "auto" &&
         opts.backend != "bubblewrap" && opts.backend != "podman" &&
         opts.backend != "host_isolated") {
+        std::cerr << "CRIVO CHECK BLOCKED: Backend de sandbox desconhecido: " << opts.backend << "\n";
         summary.overall_status = "BLOCKED";
         summary.blocked_tests = static_cast<int>(plan.planned_tests.size());
 
@@ -467,7 +468,17 @@ CheckSummary execute_check(const CheckOptions& opts) {
             exec_res.isolation_driver = "in_process_read_only";
             exec_res.isolation_status = "NOT_REQUIRED";
         } else {
-            exec_res = sandbox::run_in_sandbox(sbx_config, test_cmd);
+            sandbox::SandboxConfig test_sbx_config = sbx_config;
+            if (test_case.spec_id == "crivo.concurrency.thread-sanitizer") {
+                test_sbx_config.limits.max_memory_mb = 0; // TSan requires unrestricted virtual address space
+            }
+            if (test_case.spec_id.find("http") != std::string::npos ||
+                test_case.spec_id.find("latency") != std::string::npos ||
+                test_case.spec_id.find("input-validation") != std::string::npos ||
+                test_case.spec_id.find("header-hardening") != std::string::npos) {
+                test_sbx_config.enable_network = true; // Needs loopback access to live service
+            }
+            exec_res = sandbox::run_in_sandbox(test_sbx_config, test_cmd);
             observed_driver = exec_res.isolation_driver;
             observed_isolation = exec_res.isolation_status;
             test_passed = (exec_res.exit_code == 0);
@@ -521,7 +532,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
     sandbox::ExecutionResult overall_sbx;
     overall_sbx.exit_code = (summary.failed_tests == 0 && summary.blocked_tests == 0) ? 0 : 1;
     overall_sbx.isolation_driver = observed_driver;
-    overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" : observed_isolation;
+    overall_sbx.isolation_status = (summary.blocked_tests > 0) ? "BLOCKED" :
+                                   (summary.failed_tests > 0 ? "DEGRADED" : observed_isolation);
     overall_sbx.duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_steady - start_steady);
     if (observed_driver == "bubblewrap" || concrete_driver_name == "bubblewrap") {
         overall_sbx.capabilities_enforced = {

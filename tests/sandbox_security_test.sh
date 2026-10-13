@@ -73,7 +73,7 @@ grep -q 'Unknown sandbox backend' "$BLOCKED_EVID_FILE" || {
   exit 1
 }
 
-echo "=== [Gate E13] Teste 3: Execução Completa de Oráculos Isolados em Bubblewrap com PASS Real ==="
+echo "=== [Gate E13] Teste 3: Oráculos isolados bloqueiam evidência insuficiente ==="
 E13_TARGET="$BUILD_DIR/e13_isolated_target"
 rm -rf "$E13_TARGET"
 mkdir -p "$E13_TARGET"
@@ -84,15 +84,17 @@ EVID_DIR="$BUILD_DIR/e13_evidence"
 rm -rf "$EVID_DIR"
 mkdir -p "$EVID_DIR"
 
+set +e
 CHECK_OUT=$("$CRIVO_BIN" check --target "$E13_TARGET" --profile complete-international-benchmark --backend bubblewrap --catalog "$CATALOG_DIR" --evidence-dir "$EVID_DIR" --db "$BUILD_DIR/e13.db" --json)
 RC=$?
-if [[ $RC -ne 0 ]]; then
-  echo "FALHA: Execucao de oraculos isolados falhou (rc=$RC): $CHECK_OUT"
+set -e
+if [[ $RC -ne 2 ]]; then
+  echo "FALHA: Evidencia insuficiente deveria bloquear (rc=2), retornou $RC: $CHECK_OUT"
   exit 1
 fi
 
-echo "$CHECK_OUT" | grep -q '"status":"PASS"' || {
-  echo "FALHA: Status geral do check isolado nao foi PASS: $CHECK_OUT"
+echo "$CHECK_OUT" | grep -q '"status":"BLOCKED"' || {
+  echo "FALHA: Status geral do check isolado nao foi BLOCKED: $CHECK_OUT"
   exit 1
 }
 
@@ -110,12 +112,12 @@ grep -q '"backend":"bubblewrap"' "$REPORT_FILE" || {
   echo "FALHA: Backend bubblewrap nao comprovado no sandbox-report.json"
   exit 1
 }
-grep -q '"isolation_status":"ENFORCED"' "$REPORT_FILE" || {
-  echo "FALHA: Status ENFORCED nao comprovado na execucao aprovada: $(cat "$REPORT_FILE")"
+grep -q '"isolation_status":"BLOCKED"' "$REPORT_FILE" || {
+  echo "FALHA: Status BLOCKED nao registrado para evidencia insuficiente: $(cat "$REPORT_FILE")"
   exit 1
 }
-grep -q '"exit_code":0' "$REPORT_FILE" || {
-  echo "FALHA: Codigo de saida 0 nao registrado no execution do sandbox-report.json"
+grep -q '"exit_code":1' "$REPORT_FILE" || {
+  echo "FALHA: Codigo de saida agregado nao registrou bloqueio no sandbox-report.json"
   exit 1
 }
 grep -q '"capabilities_enforced"' "$REPORT_FILE" || {
@@ -134,10 +136,14 @@ grep -q '"unshare_all"' "$REPORT_FILE" || {
   echo "FALHA: unshare_all ausente em capabilities_enforced"
   exit 1
 }
-grep -q '"unshare_net"' "$REPORT_FILE" || {
-  echo "FALHA: unshare_net ausente em capabilities_enforced"
+grep -q '"network_mode":"HOST_SHARED"' "$REPORT_FILE" || {
+  echo "FALHA: Rede usada pelos oraculos HTTP nao foi declarada HOST_SHARED"
   exit 1
 }
+if grep -q '"unshare_net"' "$REPORT_FILE"; then
+  echo "FALHA: unshare_net declarado apesar de execucao HTTP compartilhar rede do host"
+  exit 1
+fi
 grep -q '"rw_bind_mounts"' "$REPORT_FILE" || {
   echo "FALHA: rw_bind_mounts ausente no sandbox-report.json"
   exit 1
@@ -168,7 +174,7 @@ assert 'max_processes' not in data['limits_enforced'], 'max_processes indevidame
   exit 1
 }
 
-echo "=== [Gate E13] Teste 4: Não-Declaração de ENFORCED Quando Houver Falha ==="
+echo "=== [Gate E13] Teste 4: Isolamento e veredito permanecem estados independentes ==="
 FAIL_EVID="$BUILD_DIR/e13_fail_evidence"
 rm -rf "$FAIL_EVID"
 set +e
@@ -187,12 +193,22 @@ if [[ -z "$FAIL_REPORT" || ! -f "$FAIL_REPORT" ]]; then
 fi
 
 python3 -c "
-import json, sys
+import json
 data = json.load(open('$FAIL_REPORT'))
-status = data.get('isolation_status')
-assert status in ('BLOCKED', 'DEGRADED'), f'Status nao deveria ser ENFORCED em caso de falha, obteve {status}'
+assert data.get('isolation_status') == 'ENFORCED', data
+assert data.get('execution', {}).get('exit_code') == 0, data
 " || {
-  echo "FALHA: isolation_status declarado como ENFORCED indevidamente em caso de falha!"
+  echo "FALHA: sandbox realmente aplicada nao preservou isolation_status ENFORCED"
+  exit 1
+}
+
+FAIL_EVIDENCE=$(find "$FAIL_EVID" -name "evidence.json" | head -1)
+python3 -c "
+import json
+data = json.load(open('$FAIL_EVIDENCE'))
+assert data.get('status') == 'PARTIAL', data
+" || {
+  echo "FALHA: veredito PARTIAL nao foi preservado independentemente do isolamento"
   exit 1
 }
 

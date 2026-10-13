@@ -171,7 +171,7 @@ set_tests_properties(e7_native_evidence_query PROPERTIES DEPENDS e7_native_evide
   PASS_REGULAR_EXPRESSION "\"adapter\":\"crivo-native\"")
 
 # Testes de Aceite E8 — Verificação sob Demanda e Sandbox Efêmera (CRIVO-DEV-002 / ADR-0008 / ADR-0009)
-add_test(NAME e8_check_unimplemented_oracles_blocked COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${CMAKE_SOURCE_DIR}/catalog' --profile pilot-e1 --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK BLOCKED:.*blocked=2' <<<\"$out\"")
+add_test(NAME e8_check_unimplemented_oracles_blocked COMMAND bash -c "out=$(${CMAKE_BINARY_DIR}/crivo check --target '${CMAKE_SOURCE_DIR}/catalog' --profile pilot-e1 --catalog '${CMAKE_SOURCE_DIR}/catalog' --evidence-dir '${CMAKE_BINARY_DIR}/check_evidence' --db '${CMAKE_BINARY_DIR}/check_test.db' 2>&1); rc=$?; test $rc -eq 2 && grep -q 'CRIVO CHECK PARTIAL:.*skipped=2.*blocked=0' <<<\"$out\"")
 
 add_test(NAME e8_check_json_summary COMMAND crivo check
   --target ${CMAKE_SOURCE_DIR}/catalog
@@ -353,12 +353,11 @@ add_test(NAME e12_03_active_executors_without_preexisting_artifacts COMMAND bash
   ${CMAKE_SOURCE_DIR} ${E12_ACTIVE_CLEAN_DIR} ${CMAKE_BINARY_DIR}/crivo)
 set_tests_properties(e12_03_active_executors_without_preexisting_artifacts PROPERTIES DEPENDS e12_02_automatic_project_qualification)
 
-# E12-04: promocoes de qualificacoes PASS sao ingeridas na memoria federada
+# E12-04: qualificacoes sem evidencia suficiente nao podem ser promovidas
 add_test(NAME e12_04_memory_promote COMMAND bash -c "\
   summary=$(find '${CMAKE_SOURCE_DIR}/.run/qualification/e12_active_clean' -name qualification-summary.json -type f | sort | tail -1); \
   test -n \"$summary\" && \
-  ${CMAKE_BINARY_DIR}/crivo memory promote --file \"$summary\" --db ${CMAKE_BINARY_DIR}/promoted_memory.db && \
-  ${CMAKE_BINARY_DIR}/crivo memory query --db ${CMAKE_BINARY_DIR}/promoted_memory.db --query 'sovereign_verdict' | grep -q 'exp-e12_active_clean'")
+  ! ${CMAKE_BINARY_DIR}/crivo memory promote --file \"$summary\" --db ${CMAKE_BINARY_DIR}/promoted_memory.db")
 set_tests_properties(e12_04_memory_promote PROPERTIES DEPENDS e12_03_active_executors_without_preexisting_artifacts)
 
 # E12-05: consumidor MCP executa qualify_project diretamente via RPC
@@ -398,7 +397,6 @@ add_test(NAME e13_06_adversarial_oracles_qualification COMMAND bash ${CMAKE_SOUR
   ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/adversarial_workspace)
 set_tests_properties(e13_06_adversarial_oracles_qualification PROPERTIES
   PASS_REGULAR_EXPRESSION "QUALIFICAÇÃO ADVERSARIAL CONCLUÍDA COM 100% DE SUCESSO")
-
 
 
 

@@ -119,11 +119,8 @@ static bool has_manifest_traits(const fs::path& root) {
 static Result schema_strict(const fs::path& root) {
   registry::RegistryCollection collection;
   registry::ValidationReport report;
-  bool found_crivo_schemas = false;
-  int json_files_count = 0;
   for (const auto& p : files(root, ".json")) {
     if (p.filename() == "tests.json") continue;
-    json_files_count++;
     try {
       auto j = read_json(p);
       if (j.is_object() && j.as_object().contains("schema_version")) {
@@ -131,7 +128,6 @@ static Result schema_strict(const fs::path& root) {
         if (version.starts_with("crivo.reference/") || version.starts_with("crivo.technique/") ||
             version.starts_with("crivo.test-spec/") || version.starts_with("crivo.implementation/") ||
             version.starts_with("crivo.profile/")) {
-          found_crivo_schemas = true;
           registry::validate_file(p.string(), collection, report);
         }
       }
@@ -709,8 +705,8 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
 }
 
 static Result http_observation(const fs::path& root, const fs::path& workspace, const std::string& mode) {
-  const char* expected_identity = std::getenv("CRIVO_HTTP_EXPECTED_ID");
-  if (has_http_traits(root) && (!expected_identity || std::string(expected_identity).empty())) {
+  const char* expected_identity_env = std::getenv("CRIVO_HTTP_EXPECTED_ID");
+  if (has_http_traits(root) && (!expected_identity_env || std::string(expected_identity_env).empty())) {
     return {Status::Blocked, "service identity not proven: CRIVO_HTTP_EXPECTED_ID missing"};
   }
   auto doc = get_or_create_http_observations(root, workspace);
@@ -730,16 +726,20 @@ static Result http_observation(const fs::path& root, const fs::path& workspace, 
 
   // Every response must bind the probed process to the target identity chosen
   // by the launcher.  Port reachability alone does not establish ownership.
+  bool identity_observed = false;
   for (const auto& x : rows) {
     const auto& o = x.as_object();
-    if (!o.contains("headers") || !o.at("headers").is_object()) {
-      return {Status::Blocked, "service identity not proven: response headers missing"};
-    }
+    if (!o.contains("headers") || !o.at("headers").is_object()) continue;
     const auto& headers = o.at("headers").as_object();
-    if (!headers.contains("x-crivo-target-id") || !headers.at("x-crivo-target-id").is_string() ||
+    if (!headers.contains("x-crivo-target-id")) continue;
+    if (!headers.at("x-crivo-target-id").is_string() ||
         std::string(headers.at("x-crivo-target-id").as_string()) != expected_identity) {
       return {Status::Blocked, "service identity not proven: X-Crivo-Target-Id mismatch"};
     }
+    identity_observed = true;
+  }
+  if (!identity_observed) {
+    return {Status::Blocked, "service identity not proven: X-Crivo-Target-Id missing"};
   }
 
   if (mode == "readonly") {

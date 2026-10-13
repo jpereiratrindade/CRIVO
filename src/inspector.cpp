@@ -562,7 +562,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
             "die_with_parent",
             "rlimit_as"
         };
-        if (!sbx_config.enable_network) overall_sbx.capabilities_enforced.push_back("unshare_net");
+        if (!observed_host_network_shared) overall_sbx.capabilities_enforced.push_back("unshare_net");
     } else if (observed_driver == "podman" || concrete_driver_name == "podman") {
         overall_sbx.capabilities_enforced = {
             "ro_target_volume",
@@ -598,6 +598,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
     ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
     ev_pkg["evidence_id"] = summary.request_id;
     ev_pkg["project_id"] = summary.project_id;
+    ev_pkg["status"] = summary.overall_status;
 
     boost::json::object exec_obj;
     exec_obj["adapter"] = "crivo.on_demand_check";

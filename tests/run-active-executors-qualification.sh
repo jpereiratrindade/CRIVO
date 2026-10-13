@@ -37,6 +37,7 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_header('content-security-policy', \"default-src 'self'\")
         self.send_header('x-content-type-options', 'nosniff')
         self.send_header('cache-control', 'no-store')
+        self.send_header('x-crivo-target-id', 'e12-active-clean')
         self.end_headers()
     def do_GET(self):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -55,10 +56,14 @@ with socketserver.TCPServer(('127.0.0.1', 8765), H) as httpd:
     httpd.serve_forever()
 " &
 SERVER_PID=$!
-trap 'kill -9 $SERVER_PID 2>/dev/null || true' EXIT
+trap 'kill $SERVER_PID 2>/dev/null || true; wait $SERVER_PID 2>/dev/null || true' EXIT
 sleep 0.5
 
-CRIVO_BUILD_DIR=build "$root/scripts/project-qualify.sh" "$fixture" complete-international-benchmark >/dev/null
+set +e
+CRIVO_BUILD_DIR=build CRIVO_HTTP_EXPECTED_ID=e12-active-clean "$root/scripts/project-qualify.sh" "$fixture" complete-international-benchmark >/dev/null
+qualify_rc=$?
+set -e
+test "$qualify_rc" -eq 3
 summary=$(find "$root/.run/qualification/e12_active_clean" -name qualification-summary.json -type f | sort | tail -1)
 test -n "$summary"
 python3 - "$summary" <<'PY'
@@ -66,11 +71,12 @@ import json
 import sys
 with open(sys.argv[1], encoding="utf-8") as stream:
     value = json.load(stream)
-assert value["status"] == "PASS", f"Expected PASS, got {value['status']}"
-assert value["learning_status"] == "REVIEW_REQUIRED"
+assert value["status"] == "BLOCKED", f"Expected BLOCKED, got {value['status']}"
+assert value["learning_status"] == "INSUFFICIENT_EVIDENCE"
 assert value["adapter_result"] is None
 assert value["findings"]["failed"] == 0
-assert value["findings"]["blocked"] == 0
-assert value["check_result"]["passed"] == 11
+assert value["findings"]["blocked"] == 1
+assert value["check_result"]["passed"] == 9
+assert value["check_result"]["skipped"] == 1
 assert len(value["test_contracts"]) == 11
 PY

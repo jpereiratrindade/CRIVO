@@ -129,7 +129,8 @@ P3_PID=$!
 sleep 0.5
 
 run_oracle env CRIVO_HTTP_PORT=8771 CRIVO_HTTP_EXPECTED_ID=t3-http-mutating "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T3_DIR" --workspace "$T3_DIR"
-kill -9 $P3_PID 2>/dev/null || true
+kill $P3_PID 2>/dev/null || true
+wait $P3_PID 2>/dev/null || true
 expect_oracle 1 "ORACLE FAIL" "mutating HTTP method not rejected with 405"
 
 # -----------------------------------------------------------------------------
@@ -161,7 +162,8 @@ P4_PID=$!
 sleep 0.5
 
 run_oracle env CRIVO_HTTP_PORT=8772 CRIVO_HTTP_EXPECTED_ID=t4-headers "$CRIVO_BIN" oracle crivo.security.header-hardening --target "$T4_DIR" --workspace "$T4_DIR"
-kill -9 $P4_PID 2>/dev/null || true
+kill $P4_PID 2>/dev/null || true
+wait $P4_PID 2>/dev/null || true
 expect_oracle 1 "ORACLE FAIL" "required security headers missing"
 
 # -----------------------------------------------------------------------------
@@ -190,7 +192,8 @@ P5_PID=$!
 sleep 0.5
 
 run_oracle env CRIVO_HTTP_PORT=8773 CRIVO_HTTP_EXPECTED_ID=t5-cwe "$CRIVO_BIN" oracle crivo.security.cwe-input-validation --target "$T5_DIR" --workspace "$T5_DIR"
-kill -9 $P5_PID 2>/dev/null || true
+kill $P5_PID 2>/dev/null || true
+wait $P5_PID 2>/dev/null || true
 expect_oracle 1 "ORACLE FAIL" "malicious input not rejected by contract"
 
 # -----------------------------------------------------------------------------
@@ -285,7 +288,7 @@ cat >"$T9_DIR/index.html" <<'EOF'
 <!DOCTYPE html><html><body>Web App</body></html>
 EOF
 
-run_oracle env CRIVO_HTTP_PORT=59999 "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T9_DIR" --workspace "$T9_DIR"
+run_oracle env CRIVO_HTTP_PORT=59999 CRIVO_HTTP_EXPECTED_ID=t9-no-http "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T9_DIR" --workspace "$T9_DIR"
 expect_oracle 2 "ORACLE BLOCKED" "precondition server_listening_loopback not met"
 
 # -----------------------------------------------------------------------------

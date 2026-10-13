@@ -347,11 +347,14 @@ static boost::json::object handle_tool_call(
                 out_obj["evidence_sha256"] = summary.evidence_sha256;
 
                 if (summary.overall_status == "PASS") {
-                    out_obj["learning_status"] = promote ? "PROMOTED" : "REVIEW_REQUIRED";
-                    out_obj["next_action"] = promote ? "experiencia integrada a memoria federada com sucesso" : "revisar evidencias antes de promover aprendizado";
+                    bool promoted = false;
                     if (promote && !summary.evidence_path.empty()) {
-                        memory::promote_qualification_to_experience(db_path, summary.evidence_path);
+                        promoted = memory::promote_qualification_to_experience(db_path, summary.evidence_path);
                     }
+                    out_obj["learning_status"] = promoted ? "PROMOTED" : "REVIEW_REQUIRED";
+                    out_obj["next_action"] = promoted
+                        ? "experiencia integrada a memoria federada com sucesso"
+                        : (promote ? "promocao rejeitada; revisar resumo e evidencias" : "revisar evidencias antes de promover aprendizado");
                 } else {
                     out_obj["learning_status"] = "INSUFFICIENT_EVIDENCE";
                     out_obj["next_action"] = "corrigir falhas e repetir a qualificacao";

@@ -29,6 +29,28 @@ check_fail() {
   FAILED_CHECKS=$((FAILED_CHECKS + 1))
 }
 
+# Capture stdout/stderr without erasing exit status.  Every scenario must
+# prove classification, cause, and process result together.
+run_oracle() {
+  set +e
+  ORACLE_OUT=$("$@" 2>&1)
+  ORACLE_RC=$?
+  set -e
+}
+
+expect_oracle() {
+  local expected_rc="$1"
+  local expected_class="$2"
+  local expected_cause="$3"
+  if [ "$ORACLE_RC" -eq "$expected_rc" ] &&
+     grep -Fq "$expected_class" <<<"$ORACLE_OUT" &&
+     grep -Fq "$expected_cause" <<<"$ORACLE_OUT"; then
+    check_pass
+  else
+    check_fail "esperado rc=$expected_rc, classe='$expected_class', causa='$expected_cause'; obtido rc=$ORACLE_RC: $ORACLE_OUT"
+  fi
+}
+
 # -----------------------------------------------------------------------------
 # Cenário 1: TSan detecta Data Race Real no Código do Alvo
 # -----------------------------------------------------------------------------
@@ -58,12 +80,8 @@ int main() {
 }
 EOF
 
-out=$("$CRIVO_BIN" oracle crivo.concurrency.thread-sanitizer --target "$T1_DIR" --workspace "$T1_DIR" 2>&1 || true)
-if grep -q "ThreadSanitizer reported data race" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "TSan não reprovou data race real: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.concurrency.thread-sanitizer --target "$T1_DIR" --workspace "$T1_DIR"
+expect_oracle 1 "ORACLE FAIL" "ThreadSanitizer reported data race in target code"
 
 # -----------------------------------------------------------------------------
 # Cenário 2: Rejeição de Falsa Evidência de TSan (arquivo espúrio)
@@ -72,15 +90,11 @@ run_check "Rejeição de falsa evidência de TSan (arquivo sem rastro do sanitiz
 T2_DIR="$WORKSPACE_ROOT/t2_fake_tsan"
 mkdir -p "$T2_DIR"
 cat >"$T2_DIR/tsan_report.txt" <<'EOF'
-All tests succeeded cleanly. No data races in this project.
+ThreadSanitizer execution completed without findings.
 EOF
 
-out=$("$CRIVO_BIN" oracle crivo.concurrency.thread-sanitizer --target "$T2_DIR" --workspace "$T2_DIR" 2>&1 || true)
-if grep -q "invalid TSan report evidence" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "Falso relatório de TSan foi indevidamente aceito: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.concurrency.thread-sanitizer --target "$T2_DIR" --workspace "$T2_DIR"
+expect_oracle 2 "ORACLE BLOCKED" "untrusted TSan report"
 
 # -----------------------------------------------------------------------------
 # Cenário 3: Violação de Contrato HTTP ReadOnly (POST retorna 200 em vez de 405)
@@ -96,6 +110,7 @@ import http.server, socketserver
 class H(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         self.send_response(200)
+        self.send_header('x-crivo-target-id', 't3-http-mutating')
         self.send_header('content-security-policy', \"default-src 'self'\")
         self.send_header('x-content-type-options', 'nosniff')
         self.send_header('cache-control', 'no-store')
@@ -103,6 +118,7 @@ class H(http.server.BaseHTTPRequestHandler):
         self.wfile.write(b'Mutated OK')
     def do_GET(self):
         self.send_response(200)
+        self.send_header('x-crivo-target-id', 't3-http-mutating')
         self.end_headers()
     def log_message(self, *args): pass
 socketserver.TCPServer.allow_reuse_address = True
@@ -112,14 +128,9 @@ with socketserver.TCPServer(('127.0.0.1', 8771), H) as httpd:
 P3_PID=$!
 sleep 0.5
 
-out=$(CRIVO_HTTP_PORT=8771 "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T3_DIR" --workspace "$T3_DIR" 2>&1 || true)
+run_oracle env CRIVO_HTTP_PORT=8771 CRIVO_HTTP_EXPECTED_ID=t3-http-mutating "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T3_DIR" --workspace "$T3_DIR"
 kill -9 $P3_PID 2>/dev/null || true
-
-if grep -q "mutating HTTP method not rejected with 405" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "HTTP ReadOnly não reprovou método mutante: $out"
-fi
+expect_oracle 1 "ORACLE FAIL" "mutating HTTP method not rejected with 405"
 
 # -----------------------------------------------------------------------------
 # Cenário 4: Violação de Cabeçalhos de Segurança HTTP (omissão de CSP)
@@ -135,6 +146,7 @@ import http.server, socketserver
 class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header('x-crivo-target-id', 't4-headers')
         self.send_header('x-content-type-options', 'nosniff')
         self.send_header('cache-control', 'no-store')
         # Content-Security-Policy omitido deliberadamente
@@ -148,14 +160,9 @@ with socketserver.TCPServer(('127.0.0.1', 8772), H) as httpd:
 P4_PID=$!
 sleep 0.5
 
-out=$(CRIVO_HTTP_PORT=8772 "$CRIVO_BIN" oracle crivo.security.header-hardening --target "$T4_DIR" --workspace "$T4_DIR" 2>&1 || true)
+run_oracle env CRIVO_HTTP_PORT=8772 CRIVO_HTTP_EXPECTED_ID=t4-headers "$CRIVO_BIN" oracle crivo.security.header-hardening --target "$T4_DIR" --workspace "$T4_DIR"
 kill -9 $P4_PID 2>/dev/null || true
-
-if grep -q "required security headers missing" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "Header Hardening não reprovou omissão de CSP: $out"
-fi
+expect_oracle 1 "ORACLE FAIL" "required security headers missing"
 
 # -----------------------------------------------------------------------------
 # Cenário 5: Falha de Validação de Entrada CWE (Traversal aceito com 200)
@@ -171,6 +178,7 @@ import http.server, socketserver
 class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200) # Aceita traversal indevidamente
+        self.send_header('x-crivo-target-id', 't5-cwe')
         self.end_headers()
         self.wfile.write(b'root:x:0:0:root')
     def log_message(self, *args): pass
@@ -181,14 +189,9 @@ with socketserver.TCPServer(('127.0.0.1', 8773), H) as httpd:
 P5_PID=$!
 sleep 0.5
 
-out=$(CRIVO_HTTP_PORT=8773 "$CRIVO_BIN" oracle crivo.security.cwe-input-validation --target "$T5_DIR" --workspace "$T5_DIR" 2>&1 || true)
+run_oracle env CRIVO_HTTP_PORT=8773 CRIVO_HTTP_EXPECTED_ID=t5-cwe "$CRIVO_BIN" oracle crivo.security.cwe-input-validation --target "$T5_DIR" --workspace "$T5_DIR"
 kill -9 $P5_PID 2>/dev/null || true
-
-if grep -q "malicious input accepted" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "CWE Input Validation não reprovou directory traversal: $out"
-fi
+expect_oracle 1 "ORACLE FAIL" "malicious input not rejected by contract"
 
 # -----------------------------------------------------------------------------
 # Cenário 6: Detecção de CVE Crítica em SBOM CycloneDX
@@ -214,12 +217,24 @@ cat >"$T6_DIR/sbom.json" <<'EOF'
 }
 EOF
 
-out=$("$CRIVO_BIN" oracle crivo.supply-chain.sbom-audit --target "$T6_DIR" --workspace "$T6_DIR" 2>&1 || true)
-if grep -q "high/critical SBOM vulnerability detected: CVE-2014-0160" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "SBOM Audit não reprovou CVE crítica: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.supply-chain.sbom-audit --target "$T6_DIR" --workspace "$T6_DIR"
+expect_oracle 1 "ORACLE FAIL" "high/critical SBOM vulnerability detected: CVE-2014-0160"
+
+# A syntactically valid empty array is not evidence that OSV/NVD (or another
+# named source) was queried.
+run_check "SBOM vazio sem proveniência de auditoria não gera aprovação"
+T6B_DIR="$WORKSPACE_ROOT/t6b_sbom_fake_clean"
+mkdir -p "$T6B_DIR"
+cat >"$T6B_DIR/sbom.json" <<'EOF'
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "components": [{"type": "library", "name": "unknown", "version": "1.0"}],
+  "vulnerabilities": []
+}
+EOF
+run_oracle "$CRIVO_BIN" oracle crivo.supply-chain.sbom-audit --target "$T6B_DIR" --workspace "$T6B_DIR"
+expect_oracle 2 "ORACLE BLOCKED" "AUDIT_NOT_PERFORMED"
 
 # -----------------------------------------------------------------------------
 # Cenário 7: Adulteração de Digest em Pacote de Evidências (SHA-256 mismatch)
@@ -241,12 +256,8 @@ EOF
 # Adulteração deliberada do artefato
 echo "Tampered Content!" >"$T7_DIR/artifact.txt"
 
-out=$("$CRIVO_BIN" oracle crivo.memory.sha256-provenance --target "$T7_DIR" --workspace "$T7_DIR" 2>&1 || true)
-if grep -q "SHA-256 mismatch for artifact" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "Provenance não reprovou artefato adulterado: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.memory.sha256-provenance --target "$T7_DIR" --workspace "$T7_DIR"
+expect_oracle 1 "ORACLE FAIL" "SHA-256 mismatch for artifact"
 
 # -----------------------------------------------------------------------------
 # Cenário 8: Rejeição de SARIF com Estrutura Corrompida (sem runs array)
@@ -261,12 +272,8 @@ cat >"$T8_DIR/report.sarif" <<'EOF'
 }
 EOF
 
-out=$("$CRIVO_BIN" oracle crivo.contract.sarif-export --target "$T8_DIR" --workspace "$T8_DIR" 2>&1 || true)
-if grep -q "invalid target SARIF structure" <<<"$out" || grep -q "ORACLE FAIL" <<<"$out"; then
-  check_pass
-else
-  check_fail "SARIF não reprovou arquivo sem array runs: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.contract.sarif-export --target "$T8_DIR" --workspace "$T8_DIR"
+expect_oracle 1 "ORACLE FAIL" "invalid target SARIF structure"
 
 # -----------------------------------------------------------------------------
 # Cenário 9: Ambiente Heterogêneo - Ausência de Serviço HTTP Bloqueia
@@ -278,12 +285,8 @@ cat >"$T9_DIR/index.html" <<'EOF'
 <!DOCTYPE html><html><body>Web App</body></html>
 EOF
 
-out=$(CRIVO_HTTP_PORT=59999 "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T9_DIR" --workspace "$T9_DIR" 2>&1 || true)
-if grep -q "precondition server_listening_loopback not met" <<<"$out" || grep -q "ORACLE BLOCKED" <<<"$out"; then
-  check_pass
-else
-  check_fail "Falta de servidor HTTP não resultou em BLOCKED: $out"
-fi
+run_oracle env CRIVO_HTTP_PORT=59999 "$CRIVO_BIN" oracle crivo.http.contract-readonly --target "$T9_DIR" --workspace "$T9_DIR"
+expect_oracle 2 "ORACLE BLOCKED" "precondition server_listening_loopback not met"
 
 # -----------------------------------------------------------------------------
 # Cenário 10: Ambiente Heterogêneo - Ausência de Banco SQLite declara Inaplicabilidade
@@ -293,12 +296,8 @@ T10_DIR="$WORKSPACE_ROOT/t10_no_db"
 mkdir -p "$T10_DIR"
 echo "int main() { return 0; }" >"$T10_DIR/main.cpp"
 
-out=$("$CRIVO_BIN" oracle crivo.sqlite.transaction.rollback --target "$T10_DIR" --workspace "$T10_DIR" 2>&1 || true)
-if grep -q "no SQLite database" <<<"$out" || grep -q "NOT_APPLICABLE" <<<"$out"; then
-  check_pass
-else
-  check_fail "Falta de banco SQLite não resultou em NOT_APPLICABLE: $out"
-fi
+run_oracle "$CRIVO_BIN" oracle crivo.sqlite.transaction.rollback --target "$T10_DIR" --workspace "$T10_DIR"
+expect_oracle 3 "ORACLE NOT_APPLICABLE" "no SQLite database"
 
 # -----------------------------------------------------------------------------
 # Resumo Final

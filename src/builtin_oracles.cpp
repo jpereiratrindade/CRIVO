@@ -265,7 +265,7 @@ static Result sarif(const fs::path& root, const fs::path& workspace) {
     // Verify generated SARIF
     auto v = read_json(out_sarif);
     if (v.is_object() && v.as_object().at("version").as_string() == "2.1.0" && v.as_object().at("runs").is_array()) {
-      return {Status::Pass, "[AUTO-VERIFICATION] CRIVO active SARIF 2.1.0 export generator verified (target does not provide SARIF artifact)"};
+      return {Status::NotApplicable, "[AUTO-VERIFICATION] CRIVO SARIF exporter verified; no target SARIF artifact was evaluated"};
     }
     return {Status::Fail, "[AUTO-VERIFICATION] generated SARIF failed OASIS 2.1.0 validation"};
   } catch (const std::exception& e) {
@@ -286,7 +286,7 @@ static Result tsan(const fs::path& root, const fs::path& workspace) {
       }
       if (s.find("ThreadSanitizer") != std::string::npos ||
           s.find("CRIVO Active ThreadSanitizer Target Audit") != std::string::npos) {
-        return {Status::Pass, "TSan report verified: 0 data races detected in target"};
+        return {Status::Blocked, "untrusted TSan report: a text artifact cannot prove instrumented execution provenance"};
       }
       return {Status::Fail, "invalid TSan report evidence: file does not contain ThreadSanitizer execution trace"};
     }
@@ -481,7 +481,10 @@ static Result sbom(const fs::path& root, const fs::path& workspace) {
             }
           }
         }
-        return {Status::Pass, "CycloneDX SBOM audited: 0 critical/high vulnerabilities (" + std::to_string(v_arr.size()) + " total records)"};
+        // Even audit metadata embedded in this same target-controlled file can
+        // be forged.  Clean status requires an independently executed scanner,
+        // which this oracle does not currently provide.
+        return {Status::Blocked, "INVENTORY_VALID; AUDIT_NOT_PERFORMED: target-supplied vulnerability data has no independently verified scanner execution"};
       }
       return {Status::Blocked, "precondition sbom_manifest_generated: CycloneDX SBOM present but lacks vulnerability audit data/VEX"};
     } catch (...) { return {Status::Fail, "invalid CycloneDX JSON structure"}; }
@@ -547,11 +550,12 @@ static Result sbom(const fs::path& root, const fs::path& workspace) {
       return {Status::Blocked, "precondition sbom_manifest_generated: dependencies detected in target, but no verified vulnerability audit data available"};
     }
 
-    // Target declares zero third-party dependencies; supply chain attack surface is minimal
+    // No dependency was discovered by the limited built-in inventory pass.
+    // This is not proof of an empty dependency graph or a vulnerability audit.
     doc["vulnerabilities"] = boost::json::array{};
     std::ofstream out(sbom_out);
     out << boost::json::serialize(doc);
-    return {Status::Pass, "active CycloneDX SBOM synthesized: target declares zero third-party dependencies"};
+    return {Status::Blocked, "INVENTORY_VALID; AUDIT_NOT_PERFORMED: no verified vulnerability source was queried"};
   } catch (const std::exception& e) {
     return {Status::Fail, std::string("SBOM synthesizer error: ") + e.what()};
   }
@@ -568,20 +572,20 @@ static int get_http_port() {
 }
 
 static std::optional<boost::json::object> get_or_create_http_observations(const fs::path& root, const fs::path& workspace) {
-  // 1. Check target or workspace for existing crivo-analysis.json
-  fs::path p1 = root / "crivo-analysis.json";
-  if (fs::exists(p1)) {
-    try { return read_json(p1).as_object(); } catch (...) {}
-  }
+  // Observation files are outputs, never trusted inputs: accepting a
+  // pre-existing JSON document would let unrelated or fabricated traffic pass.
   fs::path p2 = workspace / "crivo-analysis.json";
-  if (fs::exists(p2)) {
-    try { return read_json(p2).as_object(); } catch (...) {}
-  }
 
   // If no HTTP traits, return nullopt (not applicable)
   if (!has_http_traits(root)) {
     return std::nullopt;
   }
+
+  const char* expected_identity_env = std::getenv("CRIVO_HTTP_EXPECTED_ID");
+  if (!expected_identity_env || std::string(expected_identity_env).empty()) {
+    return std::nullopt;
+  }
+  const std::string expected_identity(expected_identity_env);
 
   // 2. Active HTTP Provocation Engine: probe live server on loopback ONLY if listening
   int port = get_http_port();
@@ -694,6 +698,7 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
   }
 
   doc["http_observations"] = obs;
+  doc["expected_service_identity"] = expected_identity;
   try {
     std::ofstream out(p2);
     out << boost::json::serialize(doc);
@@ -704,6 +709,10 @@ static std::optional<boost::json::object> get_or_create_http_observations(const 
 }
 
 static Result http_observation(const fs::path& root, const fs::path& workspace, const std::string& mode) {
+  const char* expected_identity = std::getenv("CRIVO_HTTP_EXPECTED_ID");
+  if (has_http_traits(root) && (!expected_identity || std::string(expected_identity).empty())) {
+    return {Status::Blocked, "service identity not proven: CRIVO_HTTP_EXPECTED_ID missing"};
+  }
   auto doc = get_or_create_http_observations(root, workspace);
   if (!doc || !doc->contains("http_observations")) {
     if (has_http_traits(root)) {
@@ -713,6 +722,25 @@ static Result http_observation(const fs::path& root, const fs::path& workspace, 
   }
   auto& rows = doc->at("http_observations").as_array();
   if (rows.empty()) return {Status::Blocked, "empty HTTP observations"};
+  if (!doc->contains("expected_service_identity") ||
+      !doc->at("expected_service_identity").is_string()) {
+    return {Status::Blocked, "service identity not proven: expected identity missing"};
+  }
+  const std::string expected_identity(doc->at("expected_service_identity").as_string());
+
+  // Every response must bind the probed process to the target identity chosen
+  // by the launcher.  Port reachability alone does not establish ownership.
+  for (const auto& x : rows) {
+    const auto& o = x.as_object();
+    if (!o.contains("headers") || !o.at("headers").is_object()) {
+      return {Status::Blocked, "service identity not proven: response headers missing"};
+    }
+    const auto& headers = o.at("headers").as_object();
+    if (!headers.contains("x-crivo-target-id") || !headers.at("x-crivo-target-id").is_string() ||
+        std::string(headers.at("x-crivo-target-id").as_string()) != expected_identity) {
+      return {Status::Blocked, "service identity not proven: X-Crivo-Target-Id mismatch"};
+    }
+  }
 
   if (mode == "readonly") {
     bool tested = false;
@@ -753,7 +781,9 @@ static Result http_observation(const fs::path& root, const fs::path& workspace, 
       if (o.contains("case") && std::string(o.at("case").as_string()) == "malicious_input") {
         tested = true;
         auto s = o.at("status").as_int64();
-        if (s < 400 || s >= 500) return {Status::Fail, "malicious input accepted"};
+        if (s != 400 && s != 403 && s != 422) {
+          return {Status::Fail, "malicious input not rejected by contract (expected 400, 403, or 422)"};
+        }
       }
     }
     return tested ? Result{Status::Pass, "malicious inputs rejected"}

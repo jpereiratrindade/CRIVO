@@ -308,6 +308,10 @@ ExecutionResult BubblewrapDriver::execute(
     if (port_env) {
         envs.push_back({"CRIVO_HTTP_PORT", port_env});
     }
+    const char* identity_env = std::getenv("CRIVO_HTTP_EXPECTED_ID");
+    if (identity_env) {
+        envs.push_back({"CRIVO_HTTP_EXPECTED_ID", identity_env});
+    }
     for (const auto& ev : config.env_vars) {
         envs.push_back(ev);
     }
@@ -465,7 +469,9 @@ std::string generate_sandbox_report_json(
     report["instance_id"] = instance_id;
     report["backend"] = res.isolation_driver;
     report["isolation_status"] = res.isolation_status;
-    report["network_mode"] = config.enable_network ? "LOOPBACK_ONLY" : "DISABLED";
+    // bwrap --share-net exposes the host network namespace.  Do not claim
+    // loopback-only isolation that the kernel configuration does not enforce.
+    report["network_mode"] = config.enable_network ? "HOST_SHARED" : "DISABLED";
 
     boost::json::array caps_arr;
     for (const auto& cap : res.capabilities_enforced) {

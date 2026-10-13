@@ -472,7 +472,11 @@ int main(int argc, char** argv) {
         std::cout << "ORACLE PASS: " << res.message << "\n";
         return 0;
       }
-      if (res.status == crivo::oracles::Status::Blocked || res.status == crivo::oracles::Status::NotApplicable) {
+      if (res.status == crivo::oracles::Status::NotApplicable) {
+        std::cerr << "ORACLE NOT_APPLICABLE: " << res.message << "\n";
+        return 3;
+      }
+      if (res.status == crivo::oracles::Status::Blocked) {
         std::cerr << "ORACLE BLOCKED: " << res.message << "\n";
         return 2;
       }

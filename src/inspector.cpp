@@ -397,6 +397,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
     std::string concrete_driver_name = concrete_driver_ptr ? std::string(concrete_driver_ptr->name()) : "none";
     std::string observed_isolation = sandbox_qualified_enforced ? "ENFORCED" : "NOT_REQUIRED";
     std::string observed_driver = sandbox_qualified_enforced ? concrete_driver_name : "none";
+    bool observed_host_network_shared = false;
 
     // 5. Execute tests in Sandbox com oráculos reais
     std::ostringstream junit_xml;
@@ -441,7 +442,14 @@ CheckSummary execute_check(const CheckOptions& opts) {
                 const auto result = oracles::run(test_case.spec_id, target.root_path, sbx_workspace);
                 failure_msg = result.message;
                 test_passed = result.status == oracles::Status::Pass;
-                if (result.status == oracles::Status::Blocked || result.status == oracles::Status::NotApplicable) {
+                if (result.status == oracles::Status::NotApplicable) {
+                    summary.skipped_tests++;
+                    junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
+                    junit_xml << "      <skipped message=\"NOT_APPLICABLE: " << result.message << "\"/>\n";
+                    junit_xml << "    </testcase>\n";
+                    continue;
+                }
+                if (result.status == oracles::Status::Blocked) {
                     summary.blocked_tests++;
                     junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
                     junit_xml << "      <error message=\"" << oracles::to_string(result.status) << ": " << result.message << "\"/>\n";
@@ -477,6 +485,7 @@ CheckSummary execute_check(const CheckOptions& opts) {
                 test_case.spec_id.find("input-validation") != std::string::npos ||
                 test_case.spec_id.find("header-hardening") != std::string::npos) {
                 test_sbx_config.enable_network = true; // Needs loopback access to live service
+                observed_host_network_shared = true;
             }
             exec_res = sandbox::run_in_sandbox(test_sbx_config, test_cmd);
             observed_driver = exec_res.isolation_driver;
@@ -490,7 +499,12 @@ CheckSummary execute_check(const CheckOptions& opts) {
         const bool strong_isolation_missing = opts.isolation == "sandbox" &&
             !test_cmd.empty() && exec_res.isolation_status != "ENFORCED";
 
-        if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing || exec_res.exit_code == 2) {
+        if (exec_res.exit_code == 3) {
+            summary.skipped_tests++;
+            junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
+            junit_xml << "      <skipped message=\"" << (failure_msg.empty() ? "NOT_APPLICABLE" : failure_msg) << "\"/>\n";
+            junit_xml << "    </testcase>\n";
+        } else if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing || exec_res.exit_code == 2) {
             summary.blocked_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <error message=\"" << (failure_msg.empty() ? "Sandbox isolation blocked" : failure_msg) << "\"/>\n";
@@ -566,13 +580,16 @@ CheckSummary execute_check(const CheckOptions& opts) {
     fs::path sbx_report_file = evidence_path / "sandbox-report.json";
     {
         std::ofstream rf(sbx_report_file);
-        rf << sandbox::generate_sandbox_report_json(sbx_config, overall_sbx, instance_id);
+        sandbox::SandboxConfig report_sbx_config = sbx_config;
+        report_sbx_config.enable_network = observed_host_network_shared;
+        rf << sandbox::generate_sandbox_report_json(report_sbx_config, overall_sbx, instance_id);
     }
     std::string sbx_sha = calculate_file_sha256(sbx_report_file);
 
     // Determine overall status
     if (summary.failed_tests > 0) summary.overall_status = "FAIL";
     else if (summary.blocked_tests > 0) summary.overall_status = "BLOCKED";
+    else if (summary.passed_tests > 0 && summary.skipped_tests > 0) summary.overall_status = "PARTIAL";
     else if (summary.passed_tests > 0) summary.overall_status = "PASS";
     else summary.overall_status = "NO_TESTS";
 

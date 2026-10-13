@@ -31,7 +31,7 @@ struct CheckOptions {
 struct CheckSummary {
     std::string request_id;
     std::string project_id;
-    std::string overall_status; // "PASS", "FAIL", "BLOCKED", "NO_TESTS"
+    std::string overall_status; // "PASS", "PARTIAL", "FAIL", "BLOCKED", "NO_TESTS"
     int total_tests{0};
     int passed_tests{0};
     int failed_tests{0};

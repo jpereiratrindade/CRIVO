@@ -84,9 +84,21 @@ static bool has_concurrency_traits(const fs::path& root) {
   for (const auto& p : files(root)) {
     auto ext = p.extension().string();
     auto name = p.filename().string();
-    if (name.find("tsan") != std::string::npos || ext == ".cpp" || ext == ".hpp" || ext == ".c" ||
-        ext == ".h" || ext == ".rs" || name == "CMakeLists.txt") {
-      return true;
+    if (name.find("tsan") != std::string::npos) return true;
+    if (name == "CMakeLists.txt") {
+      std::ifstream in(p);
+      std::string s((std::istreambuf_iterator<char>(in)), {});
+      if (s.find("Threads") != std::string::npos || s.find("pthread") != std::string::npos) return true;
+    }
+    if (ext == ".cpp" || ext == ".hpp" || ext == ".c" || ext == ".h" || ext == ".cc") {
+      std::ifstream in(p);
+      std::string s((std::istreambuf_iterator<char>(in)), {});
+      if (s.find("<thread>") != std::string::npos || s.find("<mutex>") != std::string::npos ||
+          s.find("<atomic>") != std::string::npos || s.find("pthread") != std::string::npos ||
+          s.find("std::thread") != std::string::npos || s.find("std::mutex") != std::string::npos ||
+          s.find("std::atomic") != std::string::npos) {
+        return true;
+      }
     }
   }
   return false;
@@ -107,8 +119,11 @@ static bool has_manifest_traits(const fs::path& root) {
 static Result schema_strict(const fs::path& root) {
   registry::RegistryCollection collection;
   registry::ValidationReport report;
+  bool found_crivo_schemas = false;
+  int json_files_count = 0;
   for (const auto& p : files(root, ".json")) {
     if (p.filename() == "tests.json") continue;
+    json_files_count++;
     try {
       auto j = read_json(p);
       if (j.is_object() && j.as_object().contains("schema_version")) {
@@ -116,15 +131,18 @@ static Result schema_strict(const fs::path& root) {
         if (version.starts_with("crivo.reference/") || version.starts_with("crivo.technique/") ||
             version.starts_with("crivo.test-spec/") || version.starts_with("crivo.implementation/") ||
             version.starts_with("crivo.profile/")) {
+          found_crivo_schemas = true;
           registry::validate_file(p.string(), collection, report);
         }
       }
     } catch (const std::exception& e) {
-      return {Status::Fail, "invalid JSON: " + p.string() + ": " + e.what()};
+      return {Status::Fail, "invalid JSON syntax: " + p.string() + ": " + e.what()};
     }
   }
-  return report.valid ? Result{Status::Pass, "JSON syntax and declared CRIVO schemas valid"}
-                      : Result{Status::Fail, "declared CRIVO schema invalid"};
+  if (!report.valid) {
+    return {Status::Fail, "declared CRIVO schema invalid"};
+  }
+  return {Status::Pass, "JSON syntax and declared CRIVO schemas valid"};
 }
 
 static Result sqlite_rollback(const fs::path& root, const fs::path& workspace) {
@@ -194,19 +212,21 @@ static Result sarif(const fs::path& root, const fs::path& workspace) {
     if (p.extension() == ".sarif" || p.filename().string().ends_with(".sarif.json")) {
       try {
         auto value = read_json(p);
+        if (!value.is_object()) return {Status::Fail, "invalid target SARIF: root is not JSON object"};
         auto& o = value.as_object();
-        if (o.at("version").as_string() == "2.1.0" && o.at("runs").is_array()) {
-          return {Status::Pass, "SARIF 2.1.0 valid"};
+        if (o.contains("version") && o.at("version").as_string() == "2.1.0" &&
+            o.contains("runs") && o.at("runs").is_array()) {
+          return {Status::Pass, "target SARIF 2.1.0 valid"};
         } else {
-          return {Status::Fail, "invalid SARIF structure"};
+          return {Status::Fail, "invalid target SARIF structure: missing runs array or version not 2.1.0"};
         }
       } catch (...) {
-        return {Status::Fail, "invalid SARIF JSON"};
+        return {Status::Fail, "invalid SARIF JSON in target: syntax error"};
       }
     }
   }
 
-  // 2. Active SARIF export generator
+  // 2. Active SARIF export generator (Autoverificação do exportador)
   try {
     fs::path out_sarif = workspace / "crivo-export.sarif";
     boost::json::object root_obj;
@@ -245,11 +265,11 @@ static Result sarif(const fs::path& root, const fs::path& workspace) {
     // Verify generated SARIF
     auto v = read_json(out_sarif);
     if (v.is_object() && v.as_object().at("version").as_string() == "2.1.0" && v.as_object().at("runs").is_array()) {
-      return {Status::Pass, "active SARIF 2.1.0 export generated and validated"};
+      return {Status::Pass, "[AUTO-VERIFICATION] CRIVO active SARIF 2.1.0 export generator verified (target does not provide SARIF artifact)"};
     }
-    return {Status::Fail, "generated SARIF failed validation"};
+    return {Status::Fail, "[AUTO-VERIFICATION] generated SARIF failed OASIS 2.1.0 validation"};
   } catch (const std::exception& e) {
-    return {Status::Fail, std::string("SARIF active generation failed: ") + e.what()};
+    return {Status::Fail, std::string("[AUTO-VERIFICATION] SARIF generator error: ") + e.what()};
   }
 }
 
@@ -259,9 +279,16 @@ static Result tsan(const fs::path& root, const fs::path& workspace) {
     if (p.filename().string().find("tsan") != std::string::npos) {
       std::ifstream in(p);
       std::string s((std::istreambuf_iterator<char>(in)), {});
-      return s.find("WARNING: ThreadSanitizer") == std::string::npos
-          ? Result{Status::Pass, "TSan report has no data race"}
-          : Result{Status::Fail, "ThreadSanitizer reported data race"};
+      if (s.find("WARNING: ThreadSanitizer") != std::string::npos ||
+          s.find("FATAL: ThreadSanitizer") != std::string::npos ||
+          s.find("data race") != std::string::npos) {
+        return {Status::Fail, "ThreadSanitizer reported data race in target code"};
+      }
+      if (s.find("ThreadSanitizer") != std::string::npos ||
+          s.find("CRIVO Active ThreadSanitizer Target Audit") != std::string::npos) {
+        return {Status::Pass, "TSan report verified: 0 data races detected in target"};
+      }
+      return {Status::Fail, "invalid TSan report evidence: file does not contain ThreadSanitizer execution trace"};
     }
   }
 
@@ -347,17 +374,28 @@ static Result provenance(const fs::path& root, const fs::path& workspace) {
       auto& o = value.as_object();
       if (!o.contains("artifacts") || !o.at("artifacts").is_array()) continue;
       bool valid = true;
+      std::string failure_details;
       for (const auto& item : o.at("artifacts").as_array()) {
         auto& a = item.as_object();
-        if (!a.contains("path") || !a.contains("sha256")) { valid = false; break; }
+        if (!a.contains("path") || !a.contains("sha256")) {
+          valid = false;
+          failure_details = "artifact item missing required path or sha256 property";
+          break;
+        }
         fs::path artifact = p.parent_path() / std::string(a.at("path").as_string());
         std::string expected(a.at("sha256").as_string());
         if (expected.empty() || check::calculate_file_sha256(artifact) != expected) {
           valid = false;
+          failure_details = "SHA-256 mismatch for artifact " + artifact.filename().string() +
+                            " (expected " + expected + ", got " + check::calculate_file_sha256(artifact) + ")";
           break;
         }
       }
-      if (valid) return {Status::Pass, "all artifact SHA-256 digests match"};
+      if (valid) {
+        return {Status::Pass, "target evidence package verified: all artifact SHA-256 digests match"};
+      } else {
+        return {Status::Fail, "target evidence package verification failed: " + failure_details};
+      }
     } catch (...) { continue; }
   }
 
@@ -428,22 +466,25 @@ static Result sbom(const fs::path& root, const fs::path& workspace) {
       auto& o = value.as_object();
       if (!o.contains("bomFormat") || o.at("bomFormat").as_string() != "CycloneDX") continue;
       if (!o.contains("components") || !o.at("components").is_array()) return {Status::Fail, "CycloneDX components missing"};
-      if (o.contains("vulnerabilities")) {
-        for (const auto& v : o.at("vulnerabilities").as_array()) {
+      if (o.contains("vulnerabilities") && o.at("vulnerabilities").is_array()) {
+        auto& v_arr = o.at("vulnerabilities").as_array();
+        for (const auto& v : v_arr) {
           auto& vo = v.as_object();
-          if (!vo.contains("ratings")) continue;
+          if (!vo.contains("ratings") || !vo.at("ratings").is_array()) continue;
           for (const auto& r : vo.at("ratings").as_array()) {
             if (r.as_object().contains("severity")) {
               std::string severity(r.as_object().at("severity").as_string());
               if (severity == "critical" || severity == "high") {
-                return {Status::Fail, "high/critical SBOM vulnerability"};
+                std::string vuln_id = vo.contains("id") ? std::string(vo.at("id").as_string()) : "unspecified";
+                return {Status::Fail, "high/critical SBOM vulnerability detected: " + vuln_id + " (severity: " + severity + ")"};
               }
             }
           }
         }
+        return {Status::Pass, "CycloneDX SBOM audited: 0 critical/high vulnerabilities (" + std::to_string(v_arr.size()) + " total records)"};
       }
-      return {Status::Pass, "CycloneDX SBOM has no high/critical vulnerability"};
-    } catch (...) { continue; }
+      return {Status::Blocked, "precondition sbom_manifest_generated: CycloneDX SBOM present but lacks vulnerability audit data/VEX"};
+    } catch (...) { return {Status::Fail, "invalid CycloneDX JSON structure"}; }
   }
 
   // Check applicability traits

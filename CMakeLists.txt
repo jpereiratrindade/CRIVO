@@ -393,6 +393,13 @@ add_test(NAME e13_05_mcp_memory_promote_scope_denied COMMAND bash -c "echo '{\"j
 set_tests_properties(e13_05_mcp_memory_promote_scope_denied PROPERTIES
   PASS_REGULAR_EXPRESSION "ACCESS_DENIED_OUT_OF_SCOPE")
 
+# E13-06: Qualificacao adversarial dos oraculos contra aplicacoes defeituosas e evidencias invalidas
+add_test(NAME e13_06_adversarial_oracles_qualification COMMAND bash ${CMAKE_SOURCE_DIR}/tests/adversarial_oracles_test.sh
+  ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/adversarial_workspace)
+set_tests_properties(e13_06_adversarial_oracles_qualification PROPERTIES
+  PASS_REGULAR_EXPRESSION "QUALIFICAÇÃO ADVERSARIAL CONCLUÍDA COM 100% DE SUCESSO")
+
+
 
 
 

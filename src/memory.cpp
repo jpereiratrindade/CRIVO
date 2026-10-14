@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "inspector.hpp"
 #include <boost/json.hpp>
 #include <sqlite3.h>
 #include <chrono>
@@ -205,22 +206,66 @@ bool promote_qualification_to_experience(const std::string& db_path, const std::
     auto jv = boost::json::parse(content, ec);
     if (ec || !jv.is_object()) return false;
 
-    auto obj = jv.as_object();
-    if (!obj.contains("status") || obj["status"].as_string() != "PASS") {
+    const auto& obj = jv.as_object();
+    auto required_string = [&](const char* key, std::string& value) {
+        auto it = obj.find(key);
+        if (it == obj.end() || !it->value().is_string()) return false;
+        value = std::string(it->value().as_string());
+        return !value.empty();
+    };
+
+    std::string schema_version, status, project_id, revision, profile, learning_status;
+    if (!required_string("schema_version", schema_version) ||
+        schema_version != "crivo.qualification-summary/1.0.0" ||
+        !required_string("status", status) || status != "PASS" ||
+        !required_string("project_id", project_id) ||
+        !required_string("source_revision", revision) || revision == "unknown" ||
+        !required_string("profile", profile) ||
+        !required_string("learning_status", learning_status) ||
+        learning_status != "REVIEW_REQUIRED") {
         return false;
     }
 
-    std::string project_id = obj.contains("project_id") ? std::string(obj["project_id"].as_string()) : "unknown";
-    std::string revision = obj.contains("source_revision") ? std::string(obj["source_revision"].as_string()) : "unknown";
-    std::string profile = obj.contains("profile") ? std::string(obj["profile"].as_string()) : "complete-international-benchmark";
+    auto check_it = obj.find("check_result");
+    if (check_it == obj.end() || !check_it->value().is_object()) return false;
+    const auto& check_result = check_it->value().as_object();
+    auto check_string = [&](const char* key, std::string& value) {
+        auto it = check_result.find(key);
+        if (it == check_result.end() || !it->value().is_string()) return false;
+        value = std::string(it->value().as_string());
+        return !value.empty();
+    };
 
-    std::string req_id = "req-" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-    std::string ev_sha = "";
-    if (obj.contains("check_result") && obj["check_result"].is_object()) {
-        auto cr = obj["check_result"].as_object();
-        if (cr.contains("request_id")) req_id = std::string(cr["request_id"].as_string());
-        if (cr.contains("evidence_sha256")) ev_sha = std::string(cr["evidence_sha256"].as_string());
+    std::string req_id, evidence_path, ev_sha;
+    if (!check_string("request_id", req_id) ||
+        !check_string("evidence_path", evidence_path) ||
+        !check_string("evidence_sha256", ev_sha) || ev_sha.size() != 64) {
+        return false;
     }
+
+    namespace fs = std::filesystem;
+    std::error_code path_ec;
+    fs::path summary_file = fs::weakly_canonical(filepath, path_ec);
+    if (path_ec) return false;
+    fs::path evidence_file = fs::path(evidence_path);
+    if (evidence_file.is_relative()) evidence_file = summary_file.parent_path() / evidence_file;
+    evidence_file = fs::weakly_canonical(evidence_file, path_ec);
+    if (path_ec || !fs::is_regular_file(evidence_file) ||
+        check::calculate_file_sha256(evidence_file) != ev_sha) return false;
+
+    std::ifstream evidence_stream(evidence_file);
+    std::string evidence_content((std::istreambuf_iterator<char>(evidence_stream)), std::istreambuf_iterator<char>());
+    auto evidence_json = boost::json::parse(evidence_content, ec);
+    if (ec || !evidence_json.is_object()) return false;
+    const auto& evidence = evidence_json.as_object();
+    auto evidence_matches = [&](const char* key, const std::string& expected) {
+        auto it = evidence.find(key);
+        return it != evidence.end() && it->value().is_string() && it->value().as_string() == expected;
+    };
+    if (!evidence_matches("schema_version", "crivo.evidence/1.0.0") ||
+        !evidence_matches("evidence_id", req_id) ||
+        !evidence_matches("project_id", project_id) ||
+        !evidence_matches("status", "PASS")) return false;
 
     ExperienceRecord rec;
     rec.experience_id = "exp-" + project_id + "-" + profile + "-" + req_id;
@@ -268,21 +313,9 @@ bool promote_qualification_to_experience(const std::string& db_path, const std::
 
     rec.raw_json = boost::json::serialize(exp_json);
 
-    if (!record_experience(db_path, rec)) {
-        return false;
-    }
-
-    // Update qualification-summary file with PROMOTED learning_status
-    obj["learning_status"] = "PROMOTED";
-    obj["promoted_experience_id"] = rec.experience_id;
-    obj["next_action"] = "experiencia integrada a memoria federada com sucesso";
-    try {
-        std::ofstream out(filepath);
-        out << boost::json::serialize(obj);
-        out.close();
-    } catch (...) {}
-
-    return true;
+    // Summary and canonical evidence are immutable inputs. Promotion is recorded
+    // separately in technical_experiences, whose payload carries verifiable refs.
+    return record_experience(db_path, rec);
 }
 
 std::vector<ExperienceRecord> query_experiences(

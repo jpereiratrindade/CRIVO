@@ -332,26 +332,64 @@ static boost::json::object handle_tool_call(
                 opts.timeout_seconds = 30;
 
                 auto summary = check::execute_check(opts);
+                auto target_info = check::inspect_target(resolved);
+                boost::json::object check_result;
+                check_result["request_id"] = summary.request_id;
+                check_result["status"] = summary.overall_status;
+                check_result["total"] = summary.total_tests;
+                check_result["passed"] = summary.passed_tests;
+                check_result["failed"] = summary.failed_tests;
+                check_result["skipped"] = summary.skipped_tests;
+                check_result["blocked"] = summary.blocked_tests;
+                check_result["evidence_path"] = summary.evidence_path;
+                check_result["evidence_sha256"] = summary.evidence_sha256;
+
                 boost::json::object out_obj;
                 out_obj["schema_version"] = "crivo.qualification-summary/1.0.0";
                 out_obj["project_id"] = summary.project_id;
                 out_obj["target_path"] = resolved.string();
+                out_obj["source_revision"] = target_info.revision;
+                out_obj["source_worktree"] = target_info.is_dirty ? "dirty" : "clean";
                 out_obj["profile"] = profile;
                 out_obj["status"] = summary.overall_status;
-                out_obj["total"] = summary.total_tests;
-                out_obj["passed"] = summary.passed_tests;
-                out_obj["failed"] = summary.failed_tests;
-                out_obj["skipped"] = summary.skipped_tests;
-                out_obj["blocked"] = summary.blocked_tests;
-                out_obj["evidence_path"] = summary.evidence_path;
-                out_obj["evidence_sha256"] = summary.evidence_sha256;
-
+                out_obj["adapter_exit_code"] = 0;
+                out_obj["check_exit_code"] = summary.overall_status == "PASS" ? 0 : 2;
+                out_obj["adapter_result"] = nullptr;
+                out_obj["target_tests_role"] = "OPTIONAL_DIAGNOSTIC";
+                out_obj["check_result"] = check_result;
+                out_obj["test_contracts"] = boost::json::array{};
+                out_obj["findings"] = boost::json::object{{"failed", summary.failed_tests}, {"blocked", summary.blocked_tests}, {"not_applicable", summary.skipped_tests}};
                 if (summary.overall_status == "PASS") {
                     bool promoted = false;
                     if (promote && !summary.evidence_path.empty()) {
-                        promoted = memory::promote_qualification_to_experience(db_path, summary.evidence_path);
+                        boost::json::object promotion_summary;
+                        promotion_summary["schema_version"] = "crivo.qualification-summary/1.0.0";
+                        promotion_summary["project_id"] = summary.project_id;
+                        promotion_summary["target_path"] = resolved.string();
+                        promotion_summary["source_revision"] = target_info.revision;
+                        promotion_summary["source_worktree"] = target_info.is_dirty ? "dirty" : "clean";
+                        promotion_summary["profile"] = profile;
+                        promotion_summary["status"] = "PASS";
+                        promotion_summary["adapter_exit_code"] = 0;
+                        promotion_summary["check_exit_code"] = 0;
+                        promotion_summary["adapter_result"] = nullptr;
+                        promotion_summary["target_tests_role"] = "OPTIONAL_DIAGNOSTIC";
+                        promotion_summary["check_result"] = check_result;
+                        promotion_summary["test_contracts"] = boost::json::array{};
+                        promotion_summary["findings"] = boost::json::object{{"failed", 0}, {"blocked", 0}, {"not_applicable", summary.skipped_tests}};
+                        promotion_summary["learning_status"] = "REVIEW_REQUIRED";
+                        promotion_summary["next_action"] = "revisar evidencias antes de promover aprendizado";
+
+                        fs::path promotion_path = fs::path(summary.evidence_path).parent_path() / "qualification-summary.json";
+                        std::ofstream promotion_file(promotion_path);
+                        promotion_file << boost::json::serialize(promotion_summary) << '\n';
+                        promotion_file.close();
+                        promoted = promotion_file && memory::promote_qualification_to_experience(db_path, promotion_path.string());
                     }
                     out_obj["learning_status"] = promoted ? "PROMOTED" : "REVIEW_REQUIRED";
+                    if (promoted) {
+                        out_obj["promoted_experience_id"] = "exp-" + summary.project_id + "-" + profile + "-" + summary.request_id;
+                    }
                     out_obj["next_action"] = promoted
                         ? "experiencia integrada a memoria federada com sucesso"
                         : (promote ? "promocao rejeitada; revisar resumo e evidencias" : "revisar evidencias antes de promover aprendizado");

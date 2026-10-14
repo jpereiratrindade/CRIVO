@@ -360,6 +360,10 @@ add_test(NAME e12_04_memory_promote COMMAND bash -c "\
   ! ${CMAKE_BINARY_DIR}/crivo memory promote --file \"$summary\" --db ${CMAKE_BINARY_DIR}/promoted_memory.db")
 set_tests_properties(e12_04_memory_promote PROPERTIES DEPENDS e12_03_active_executors_without_preexisting_artifacts)
 
+# E12-04b: promocao valida contrato/hash e nunca altera resumo ou evidencia canonica
+add_test(NAME e12_04b_memory_promotion_integrity COMMAND bash ${CMAKE_SOURCE_DIR}/tests/memory_promotion_integrity.sh
+  ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/memory_promotion_integrity)
+
 # E12-05: consumidor MCP executa qualify_project diretamente via RPC
 add_test(NAME e12_05_mcp_qualify_project COMMAND bash -c "echo '{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"qualify_project\",\"arguments\":{\"target_path\":\"e12_all_oracles\",\"profile\":\"complete-international-benchmark\",\"promote_on_pass\":true}}}' | ${CMAKE_BINARY_DIR}/crivo mcp --db ${CMAKE_BINARY_DIR}/memory_test.db --catalog '${CMAKE_SOURCE_DIR}/catalog' --workspace-root '${CMAKE_BINARY_DIR}'")
 set_tests_properties(e12_05_mcp_qualify_project PROPERTIES
@@ -397,7 +401,6 @@ add_test(NAME e13_06_adversarial_oracles_qualification COMMAND bash ${CMAKE_SOUR
   ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/adversarial_workspace)
 set_tests_properties(e13_06_adversarial_oracles_qualification PROPERTIES
   PASS_REGULAR_EXPRESSION "QUALIFICAÇÃO ADVERSARIAL CONCLUÍDA COM 100% DE SUCESSO")
-
 
 
 

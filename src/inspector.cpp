@@ -12,6 +12,9 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace crivo::check {
 
@@ -126,6 +129,31 @@ static std::string generate_utc_timestamp() {
     return ss.str();
 }
 
+static std::string git_output(const fs::path& root, const char* arg1, const char* arg2 = nullptr) {
+    int fds[2];
+    if (pipe(fds) != 0) return {};
+    pid_t pid = fork();
+    if (pid == 0) {
+        dup2(fds[1], STDOUT_FILENO);
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull >= 0) dup2(devnull, STDERR_FILENO);
+        close(fds[0]); close(fds[1]);
+        if (arg2) execlp("git", "git", "-C", root.c_str(), arg1, arg2, static_cast<char*>(nullptr));
+        else execlp("git", "git", "-C", root.c_str(), arg1, static_cast<char*>(nullptr));
+        _exit(127);
+    }
+    close(fds[1]);
+    std::string output;
+    char buffer[4096];
+    ssize_t count;
+    while ((count = read(fds[0], buffer, sizeof(buffer))) > 0) output.append(buffer, static_cast<std::size_t>(count));
+    close(fds[0]);
+    int status = 0;
+    if (pid < 0 || waitpid(pid, &status, 0) < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) return {};
+    while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) output.pop_back();
+    return output;
+}
+
 TargetInfo inspect_target(const fs::path& target_path) {
     TargetInfo info;
     info.root_path = fs::absolute(target_path);
@@ -205,26 +233,12 @@ TargetInfo inspect_target(const fs::path& target_path) {
     if (has_cyclonedx) info.discovered_capabilities.push_back("capability:cyclonedx");
     if (has_tsan) info.discovered_capabilities.push_back("capability:posix_threads");
 
-    // Check git revision if available
-    fs::path git_dir = info.root_path / ".git";
-    if (fs::exists(git_dir)) {
-        fs::path head_file = git_dir / "HEAD";
-        if (fs::exists(head_file)) {
-            std::ifstream hf(head_file);
-            std::string line;
-            if (std::getline(hf, line)) {
-                if (line.rfind("ref: ", 0) == 0) {
-                    std::string ref_path = line.substr(5);
-                    fs::path ref_full = git_dir / ref_path;
-                    if (fs::exists(ref_full)) {
-                        std::ifstream rf(ref_full);
-                        std::getline(rf, info.revision);
-                    }
-                } else {
-                    info.revision = line;
-                }
-            }
-        }
+    // Resolve Git identity through argv-based exec (no shell interpolation),
+    // including packed refs, worktrees and subdirectory targets.
+    auto revision = git_output(info.root_path, "rev-parse", "HEAD");
+    if (!revision.empty()) {
+        info.revision = revision;
+        info.is_dirty = !git_output(info.root_path, "status", "--porcelain").empty();
     }
 
     return info;
@@ -340,6 +354,14 @@ CheckSummary execute_check(const CheckOptions& opts) {
             ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
             ev_pkg["evidence_id"] = summary.request_id;
             ev_pkg["project_id"] = summary.project_id;
+            ev_pkg["source_revision"] = target.revision;
+            ev_pkg["source_worktree"] = target.is_dirty ? "dirty" : "clean";
+            ev_pkg["provenance"] = boost::json::object{
+                {"revision_system", target.revision == "unknown" ? "none" : "git"},
+                {"trust_level", "locally_observed"},
+                {"limitations", target.revision == "unknown"
+                    ? "no version-control revision was observable"
+                    : "revision observed locally; no independent attestation"}};
             ev_pkg["status"] = "BLOCKED";
             ev_pkg["cause"] = "Unknown sandbox backend: " + opts.backend;
             std::ofstream ef(ev_file);
@@ -378,6 +400,14 @@ CheckSummary execute_check(const CheckOptions& opts) {
                 ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
                 ev_pkg["evidence_id"] = summary.request_id;
                 ev_pkg["project_id"] = summary.project_id;
+                ev_pkg["source_revision"] = target.revision;
+                ev_pkg["source_worktree"] = target.is_dirty ? "dirty" : "clean";
+                ev_pkg["provenance"] = boost::json::object{
+                    {"revision_system", target.revision == "unknown" ? "none" : "git"},
+                    {"trust_level", "locally_observed"},
+                    {"limitations", target.revision == "unknown"
+                        ? "no version-control revision was observable"
+                        : "revision observed locally; no independent attestation"}};
                 ev_pkg["status"] = "BLOCKED";
                 ev_pkg["cause"] = "Sandbox qualification failed: backend cannot enforce required kernel isolation";
                 std::ofstream ef(ev_file);
@@ -598,6 +628,14 @@ CheckSummary execute_check(const CheckOptions& opts) {
     ev_pkg["schema_version"] = "crivo.evidence/1.0.0";
     ev_pkg["evidence_id"] = summary.request_id;
     ev_pkg["project_id"] = summary.project_id;
+    ev_pkg["source_revision"] = target.revision;
+    ev_pkg["source_worktree"] = target.is_dirty ? "dirty" : "clean";
+    ev_pkg["provenance"] = boost::json::object{
+        {"revision_system", target.revision == "unknown" ? "none" : "git"},
+        {"trust_level", "locally_observed"},
+        {"limitations", target.revision == "unknown"
+            ? "no version-control revision was observable"
+            : "revision observed locally; no independent attestation"}};
     ev_pkg["status"] = summary.overall_status;
 
     boost::json::object exec_obj;

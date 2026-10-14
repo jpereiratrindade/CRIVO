@@ -1,5 +1,6 @@
 #include "memory.hpp"
 #include "inspector.hpp"
+#include "json_schema.hpp"
 #include <boost/json.hpp>
 #include <sqlite3.h>
 #include <chrono>
@@ -138,7 +139,12 @@ bool record_experience(const std::string& db_path, const ExperienceRecord& rec) 
     sqlite3_bind_text(stmt, 15, ts.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 16, rec.raw_json.c_str(), -1, SQLITE_TRANSIENT);
 
-    bool ok = (sqlite3_step(stmt) == SQLITE_DONE);
+    int step_result = sqlite3_step(stmt);
+    bool ok = (step_result == SQLITE_DONE);
+    if (!ok) {
+        std::cerr << "[crivo] Failed to persist technical experience: "
+                  << sqlite3_errmsg(db) << " (code " << step_result << ")\n";
+    }
     sqlite3_finalize(stmt);
     sqlite3_close(db);
     return ok;
@@ -206,6 +212,14 @@ bool promote_qualification_to_experience(const std::string& db_path, const std::
     auto jv = boost::json::parse(content, ec);
     if (ec || !jv.is_object()) return false;
 
+    std::ifstream schema_file(std::filesystem::path(CRIVO_SCHEMA_DIR) /
+                              "qualification-summary/1.0.0.schema.json");
+    if (!schema_file) return false;
+    std::string schema_content((std::istreambuf_iterator<char>(schema_file)), std::istreambuf_iterator<char>());
+    auto schema_json = boost::json::parse(schema_content, ec);
+    std::string schema_error;
+    if (ec || !json_schema::validate(jv, schema_json, schema_error)) return false;
+
     const auto& obj = jv.as_object();
     auto required_string = [&](const char* key, std::string& value) {
         auto it = obj.find(key);
@@ -214,12 +228,14 @@ bool promote_qualification_to_experience(const std::string& db_path, const std::
         return !value.empty();
     };
 
-    std::string schema_version, status, project_id, revision, profile, learning_status;
+    std::string schema_version, status, project_id, target_path, revision, source_worktree, profile, learning_status;
     if (!required_string("schema_version", schema_version) ||
         schema_version != "crivo.qualification-summary/1.0.0" ||
         !required_string("status", status) || status != "PASS" ||
         !required_string("project_id", project_id) ||
-        !required_string("source_revision", revision) || revision == "unknown" ||
+        !required_string("target_path", target_path) ||
+        !required_string("source_revision", revision) ||
+        !required_string("source_worktree", source_worktree) ||
         !required_string("profile", profile) ||
         !required_string("learning_status", learning_status) ||
         learning_status != "REVIEW_REQUIRED") {
@@ -265,6 +281,8 @@ bool promote_qualification_to_experience(const std::string& db_path, const std::
     if (!evidence_matches("schema_version", "crivo.evidence/1.0.0") ||
         !evidence_matches("evidence_id", req_id) ||
         !evidence_matches("project_id", project_id) ||
+        !evidence_matches("source_revision", revision) ||
+        !evidence_matches("source_worktree", source_worktree) ||
         !evidence_matches("status", "PASS")) return false;
 
     ExperienceRecord rec;

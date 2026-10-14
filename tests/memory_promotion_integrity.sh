@@ -5,25 +5,51 @@ bin=$2
 work=$3
 rm -rf "$work"
 mkdir -p "$work"
+mkdir -p "$work/target"
+printf 'qualified source\n' >"$work/target/source.txt"
+revision=unknown
 
-cat >"$work/evidence.json" <<'JSON'
-{"schema_version":"crivo.evidence/1.0.0","evidence_id":"req-integrity","project_id":"promotion-fixture","status":"PASS"}
-JSON
+printf '%s\n' "{\"schema_version\":\"crivo.evidence/1.0.0\",\"evidence_id\":\"req-integrity\",\"project_id\":\"promotion-fixture\",\"source_revision\":\"$revision\",\"source_worktree\":\"clean\",\"status\":\"PASS\",\"provenance\":{\"revision_system\":\"none\",\"trust_level\":\"locally_observed\",\"limitations\":\"no version-control revision was observable\"}}" >"$work/evidence.json"
 evidence_sha=$(sha256sum "$work/evidence.json" | cut -d' ' -f1)
 cat >"$work/qualification-summary.json" <<JSON
-{"schema_version":"crivo.qualification-summary/1.0.0","project_id":"promotion-fixture","target_path":"$work","source_revision":"0123456789abcdef","source_worktree":"clean","profile":"integrity-test","status":"PASS","adapter_exit_code":0,"check_exit_code":0,"adapter_result":null,"target_tests_role":"OPTIONAL_DIAGNOSTIC","check_result":{"request_id":"req-integrity","evidence_path":"$work/evidence.json","evidence_sha256":"$evidence_sha"},"test_contracts":[],"findings":{"failed":0,"blocked":0,"not_applicable":0},"learning_status":"REVIEW_REQUIRED","next_action":"review"}
+{"schema_version":"crivo.qualification-summary/1.0.0","project_id":"promotion-fixture","target_path":"$work/target","source_revision":"$revision","source_worktree":"clean","profile":"integrity-test","status":"PASS","adapter_exit_code":0,"check_exit_code":0,"adapter_result":null,"target_tests_role":"OPTIONAL_DIAGNOSTIC","check_result":{"request_id":"req-integrity","evidence_path":"$work/evidence.json","evidence_sha256":"$evidence_sha"},"test_contracts":[],"findings":{"failed":0,"blocked":0,"not_applicable":0},"learning_status":"REVIEW_REQUIRED","next_action":"review"}
 JSON
 summary_sha=$(sha256sum "$work/qualification-summary.json" | cut -d' ' -f1)
 "$bin" memory promote --file "$work/qualification-summary.json" --db "$work/memory.db" >/dev/null
 test "$evidence_sha" = "$(sha256sum "$work/evidence.json" | cut -d' ' -f1)"
 test "$summary_sha" = "$(sha256sum "$work/qualification-summary.json" | cut -d' ' -f1)"
-"$bin" memory query --db "$work/memory.db" --project promotion-fixture | python3 -c 'import json,sys; x=json.load(sys.stdin); assert len(x)==1; assert x[0]["source_revision"]=="0123456789abcdef"; assert x[0]["evidence_sha256"]'
+"$bin" memory query --db "$work/memory.db" --project promotion-fixture | python3 -c 'import json,sys; x=json.load(sys.stdin); assert len(x)==1; assert x[0]["source_revision"]=="unknown"; assert "unknown" in x[0]["limitations"]; assert x[0]["evidence_sha256"]'
 
 printf '\n' >>"$work/evidence.json"
 if "$bin" memory promote --file "$work/qualification-summary.json" --db "$work/tampered.db" >/dev/null 2>&1; then
   echo "tampered evidence was promoted" >&2
   exit 1
 fi
+sed -i '${/^$/d;}' "$work/evidence.json"
+test "$evidence_sha" = "$(sha256sum "$work/evidence.json" | cut -d' ' -f1)"
+
+# Every schema-invalid summary must fail at the promotion boundary itself.
+cp "$work/qualification-summary.json" "$work/invalid.json"
+python3 - "$work/invalid.json" <<'PY'
+import json, sys
+p=sys.argv[1]; value=json.load(open(p)); del value["target_path"]
+json.dump(value, open(p, "w"))
+PY
+! "$bin" memory promote --file "$work/invalid.json" --db "$work/invalid.db" >/dev/null 2>&1
+
+python3 - "$work/qualification-summary.json" "$work/invalid.json" <<'PY'
+import json, sys
+value=json.load(open(sys.argv[1])); value["adapter_exit_code"]="zero"
+json.dump(value, open(sys.argv[2], "w"))
+PY
+! "$bin" memory promote --file "$work/invalid.json" --db "$work/invalid.db" >/dev/null 2>&1
+
+python3 - "$work/qualification-summary.json" "$work/invalid.json" <<'PY'
+import json, sys
+value=json.load(open(sys.argv[1])); value["findings"]["failed"]=1
+json.dump(value, open(sys.argv[2], "w"))
+PY
+! "$bin" memory promote --file "$work/invalid.json" --db "$work/invalid.db" >/dev/null 2>&1
 
 python3 - "$root/schemas/qualification-summary/1.0.0.schema.json" <<'PY'
 import json, sys

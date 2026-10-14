@@ -9,6 +9,19 @@
     },
     "evidence_id": { "type": "string" },
     "project_id": { "type": "string" },
+    "source_revision": { "type": "string", "minLength": 1 },
+    "source_worktree": { "enum": ["clean", "dirty"] },
+    "status": { "enum": ["PASS", "PARTIAL", "FAIL", "BLOCKED", "NO_TESTS"] },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "revision_system": { "enum": ["git", "none", "external"] },
+        "trust_level": { "enum": ["locally_observed", "target_asserted", "externally_attested"] },
+        "limitations": { "type": "string", "minLength": 1 }
+      },
+      "required": ["revision_system", "trust_level", "limitations"],
+      "additionalProperties": false
+    },
     "executor": {
       "type": "object",
       "properties": {

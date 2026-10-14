@@ -16,6 +16,7 @@ add_executable(crivo
   src/inspector.cpp
   src/builtin_oracles.cpp
   src/memory.cpp
+  src/json_schema.cpp
   src/dev_context.cpp
   src/mcp_server.cpp
   src/registry/json_impl.cpp
@@ -29,7 +30,8 @@ add_executable(crivo
 
 target_include_directories(crivo PRIVATE src)
 target_link_libraries(crivo PRIVATE SQLite3::SQLite3 Boost::headers Threads::Threads)
-target_compile_definitions(crivo PRIVATE BOOST_ERROR_CODE_HEADER_ONLY BOOST_JSON_HEADER_ONLY)
+target_compile_definitions(crivo PRIVATE BOOST_ERROR_CODE_HEADER_ONLY BOOST_JSON_HEADER_ONLY
+  CRIVO_SCHEMA_DIR="${CMAKE_SOURCE_DIR}/schemas")
 target_compile_options(crivo PRIVATE -Wall -Wextra -Wpedantic)
 
 enable_testing()
@@ -401,7 +403,6 @@ add_test(NAME e13_06_adversarial_oracles_qualification COMMAND bash ${CMAKE_SOUR
   ${CMAKE_BINARY_DIR}/crivo ${CMAKE_BINARY_DIR}/adversarial_workspace)
 set_tests_properties(e13_06_adversarial_oracles_qualification PROPERTIES
   PASS_REGULAR_EXPRESSION "QUALIFICAÇÃO ADVERSARIAL CONCLUÍDA COM 100% DE SUCESSO")
-
 
 
 

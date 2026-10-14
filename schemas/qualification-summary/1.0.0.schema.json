@@ -8,6 +8,16 @@
     {
       "if": {"properties": {"learning_status": {"const": "PROMOTED"}}, "required": ["learning_status"]},
       "then": {"required": ["promoted_experience_id"]}
+    },
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "findings": {
+            "properties": {"failed": {"const": 0}, "blocked": {"const": 0}}
+          }
+        }
+      }
     }
   ],
   "required": ["schema_version", "project_id", "target_path", "source_revision", "source_worktree", "profile", "status", "adapter_exit_code", "check_exit_code", "adapter_result", "target_tests_role", "check_result", "test_contracts", "findings", "learning_status", "next_action"],

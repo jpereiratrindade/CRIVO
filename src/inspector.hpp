@@ -29,6 +29,16 @@ struct CheckOptions {
 };
 
 struct CheckSummary {
+    struct Diagnostic {
+        std::string specification;
+        std::string object;
+        std::string condition;
+        std::string stimulus;
+        std::string observation;
+        std::string criterion;
+        std::string verdict;
+        std::string limitations;
+    };
     std::string request_id;
     std::string project_id;
     std::string overall_status; // "PASS", "PARTIAL", "FAIL", "BLOCKED", "NO_TESTS"
@@ -39,6 +49,7 @@ struct CheckSummary {
     int blocked_tests{0};
     std::string evidence_path;
     std::string evidence_sha256;
+    std::vector<Diagnostic> results;
 };
 
 TargetInfo inspect_target(const std::filesystem::path& target_path);

@@ -76,7 +76,13 @@ assert value["learning_status"] == "INSUFFICIENT_EVIDENCE"
 assert value["adapter_result"] is None
 assert value["findings"]["failed"] == 0
 assert value["findings"]["blocked"] == 1
-assert value["check_result"]["passed"] == 9
-assert value["check_result"]["skipped"] == 1
+assert value["findings"]["not_applicable"] == 2
+assert value["check_result"]["passed"] == 8
+assert value["check_result"]["skipped"] == 2
+assert len(value["check_result"]["results"]) == 11
+required = {"specification", "object", "condition", "stimulus", "observation", "criterion", "verdict", "limitations"}
+assert all(required <= item.keys() for item in value["check_result"]["results"])
+schema_result = next(item for item in value["check_result"]["results"] if item["specification"].startswith("crivo.catalog.schema-strict@"))
+assert schema_result["verdict"] == "NOT_APPLICABLE"
 assert len(value["test_contracts"]) == 11
 PY

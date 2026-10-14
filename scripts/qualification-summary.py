@@ -32,9 +32,9 @@ for reference in profile_document.get("selection", {}).get("include_specs", []):
         "expected_behavior": specification.get("oracle", {}),
     })
 findings = {
-    "failed": sum(item.get("status") == "FAIL" for item in results) if results else check.get("failed", 0),
-    "blocked": sum(item.get("status") == "BLOCKED" for item in results) if results else check.get("blocked", 0),
-    "not_applicable": sum(item.get("status") == "NOT_APPLICABLE" for item in results),
+    "failed": sum(item.get("verdict", item.get("status")) == "FAIL" for item in results) if results else check.get("failed", 0),
+    "blocked": sum(item.get("verdict", item.get("status")) == "BLOCKED" for item in results) if results else check.get("blocked", 0),
+    "not_applicable": sum(item.get("verdict", item.get("status")) == "NOT_APPLICABLE" for item in results),
 }
 if status == "PASS":
     learning_status = "REVIEW_REQUIRED"

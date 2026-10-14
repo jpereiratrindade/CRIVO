@@ -94,6 +94,7 @@ TestPlan resolve_test_plan(const ProfileRecord& profile,
     tc.adapter = adapter;
     tc.applicability_status = eval.status;
     tc.required_capabilities = spec.applicability;
+    tc.oracle_description = spec.oracle.description.value_or(spec.oracle.id);
 
     if (eval.status == ApplicabilityStatus::APPLICABLE) {
       tc.applicability_reasons = {"Todas as capacidades requeridas estao disponiveis"};
@@ -153,6 +154,7 @@ std::string serialize_test_plan_json(const TestPlan& plan) {
     o["implementation_id"] = tc.implementation_id;
     o["implementation_version"] = tc.implementation_version;
     o["adapter"] = tc.adapter;
+    o["oracle_description"] = tc.oracle_description;
     o["applicability_status"] = to_string(tc.applicability_status);
 
     json::array reasons;

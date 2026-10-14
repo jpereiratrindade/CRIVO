@@ -52,6 +52,24 @@
       "required": ["total", "passed", "failed", "skipped"],
       "additionalProperties": false
     },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "specification": {"type": "string", "minLength": 1},
+          "object": {"type": "string", "minLength": 1},
+          "condition": {"type": "string"},
+          "stimulus": {"type": "string", "minLength": 1},
+          "observation": {"type": "string", "minLength": 1},
+          "criterion": {"type": "string", "minLength": 1},
+          "verdict": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"]},
+          "limitations": {"type": "string", "minLength": 1}
+        },
+        "required": ["specification", "object", "condition", "stimulus", "observation", "criterion", "verdict", "limitations"],
+        "additionalProperties": false
+      }
+    },
     "artifacts": {
       "type": "array",
       "items": {

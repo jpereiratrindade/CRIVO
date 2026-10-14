@@ -12,4 +12,4 @@ out=$("$bin" check --target "$fixture" --profile complete-international-benchmar
 rc=$?
 set -e
 test "$rc" -eq 2
-grep -q 'CRIVO CHECK BLOCKED: total=11, passed=5, failed=0, skipped=0, blocked=6' <<<"$out"
+grep -q 'CRIVO CHECK BLOCKED: total=11, passed=4, failed=0, skipped=1, blocked=6' <<<"$out"

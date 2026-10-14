@@ -15,6 +15,7 @@ struct PlannedTestCase {
   ApplicabilityStatus applicability_status;
   std::vector<std::string> applicability_reasons;
   std::vector<std::string> required_capabilities;
+  std::string oracle_description;
 };
 
 struct TestPlanSummary {

@@ -119,6 +119,7 @@ static bool has_manifest_traits(const fs::path& root) {
 static Result schema_strict(const fs::path& root) {
   registry::RegistryCollection collection;
   registry::ValidationReport report;
+  std::size_t declared_records = 0;
   for (const auto& p : files(root, ".json")) {
     if (p.filename() == "tests.json") continue;
     try {
@@ -128,6 +129,7 @@ static Result schema_strict(const fs::path& root) {
         if (version.starts_with("crivo.reference/") || version.starts_with("crivo.technique/") ||
             version.starts_with("crivo.test-spec/") || version.starts_with("crivo.implementation/") ||
             version.starts_with("crivo.profile/")) {
+          ++declared_records;
           registry::validate_file(p.string(), collection, report);
         }
       }
@@ -136,9 +138,19 @@ static Result schema_strict(const fs::path& root) {
     }
   }
   if (!report.valid) {
-    return {Status::Fail, "declared CRIVO schema invalid"};
+    return {Status::Fail, "declared CRIVO schema invalid", root.string(),
+            "validate declared CRIVO records", "schema validation errors observed",
+            "every declared record conforms to its versioned schema", "only declared CRIVO records were examined"};
   }
-  return {Status::Pass, "JSON syntax and declared CRIVO schemas valid"};
+  if (declared_records == 0) {
+    return {Status::NotApplicable, "no declared CRIVO schema record found", root.string(),
+            "discover records with recognized schema_version", "zero pertinent records",
+            "at least one declared CRIVO record must exist", "generic JSON files were not treated as CRIVO contracts"};
+  }
+  return {Status::Pass, "declared CRIVO schemas valid", root.string(),
+          "validate " + std::to_string(declared_records) + " declared CRIVO records",
+          std::to_string(declared_records) + " conforming records",
+          "every declared record conforms to its versioned schema", "does not validate unrelated JSON documents"};
 }
 
 static Result sqlite_rollback(const fs::path& root, const fs::path& workspace) {

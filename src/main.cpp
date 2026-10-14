@@ -10,6 +10,7 @@
 #include "memory.hpp"
 #include "dev_context.hpp"
 #include "mcp_server.hpp"
+#include <boost/json.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -392,16 +393,20 @@ int main(int argc, char** argv) {
 
       auto summary = crivo::check::execute_check(opts);
       if (json_output) {
-        std::cout << "{\"schema_version\":\"crivo.check-summary/1.0.0\",\"request_id\":\""
-                  << summary.request_id << "\",\"project_id\":\"" << summary.project_id
-                  << "\",\"status\":\"" << summary.overall_status
-                  << "\",\"total\":" << summary.total_tests
-                  << ",\"passed\":" << summary.passed_tests
-                  << ",\"failed\":" << summary.failed_tests
-                  << ",\"skipped\":" << summary.skipped_tests
-                  << ",\"blocked\":" << summary.blocked_tests
-                  << ",\"evidence_path\":\"" << summary.evidence_path
-                  << "\",\"evidence_sha256\":\"" << summary.evidence_sha256 << "\"}\n";
+        boost::json::object output{{"schema_version", "crivo.check-summary/1.0.0"},
+          {"request_id", summary.request_id}, {"project_id", summary.project_id},
+          {"status", summary.overall_status}, {"total", summary.total_tests},
+          {"passed", summary.passed_tests}, {"failed", summary.failed_tests},
+          {"skipped", summary.skipped_tests}, {"blocked", summary.blocked_tests},
+          {"evidence_path", summary.evidence_path}, {"evidence_sha256", summary.evidence_sha256}};
+        boost::json::array results;
+        for (const auto& result : summary.results) {
+          results.push_back(boost::json::object{{"specification", result.specification}, {"object", result.object},
+            {"condition", result.condition}, {"stimulus", result.stimulus}, {"observation", result.observation},
+            {"criterion", result.criterion}, {"verdict", result.verdict}, {"limitations", result.limitations}});
+        }
+        output["results"] = results;
+        std::cout << boost::json::serialize(output) << '\n';
       } else {
         std::cout << "CRIVO CHECK " << summary.overall_status << ": "
                   << "total=" << summary.total_tests

@@ -25,6 +25,10 @@ assert value["adapter_result"] is None
 assert value["target_tests_role"] == "OPTIONAL_DIAGNOSTIC"
 assert value["findings"]["failed"] == 0
 assert value["findings"]["blocked"] == 6
+assert value["findings"]["not_applicable"] == 1
+assert value["check_result"]["passed"] == 4
+assert value["check_result"]["skipped"] == 1
+assert len(value["check_result"]["results"]) == 11
 assert value["next_action"]
 assert len(value["test_contracts"]) == 11
 assert all(item["stimulus"]["implementation"] for item in value["test_contracts"])

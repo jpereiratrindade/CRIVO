@@ -437,8 +437,26 @@ CheckSummary execute_check(const CheckOptions& opts) {
 
     for (const auto& test_case : plan.planned_tests) {
         summary.total_tests++;
+        CheckSummary::Diagnostic diagnostic;
+        diagnostic.specification = test_case.spec_id + "@" + test_case.spec_version;
+        diagnostic.object = target.root_path.string();
+        for (std::size_t i = 0; i < test_case.required_capabilities.size(); ++i) {
+            if (i) diagnostic.condition += ", ";
+            diagnostic.condition += test_case.required_capabilities[i];
+        }
+        diagnostic.stimulus = "adapter=" + test_case.adapter;
+        diagnostic.criterion = test_case.oracle_description;
+        diagnostic.verdict = "BLOCKED";
+        diagnostic.limitations = "no target-specific binding was declared";
+        struct DiagnosticGuard {
+            std::vector<CheckSummary::Diagnostic>& output;
+            CheckSummary::Diagnostic& value;
+            ~DiagnosticGuard() { output.push_back(value); }
+        } diagnostic_guard{summary.results, diagnostic};
 
         if (test_case.applicability_status == registry::ApplicabilityStatus::NOT_APPLICABLE) {
+            diagnostic.verdict = "NOT_APPLICABLE";
+            diagnostic.observation = "required capability explicitly unavailable";
             summary.skipped_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <skipped message=\"Not applicable to target capabilities\"/>\n";
@@ -449,6 +467,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
         if (test_case.applicability_status == registry::ApplicabilityStatus::UNKNOWN) {
             if (opts.fail_closed) {
                 summary.blocked_tests++;
+                diagnostic.observation = "required capability remains unconfirmed";
+                diagnostic.limitations = "fail-closed applicability policy";
                 junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
                 junit_xml << "      <error message=\"Blocked by fail-closed policy: Unknown capability\"/>\n";
                 junit_xml << "    </testcase>\n";
@@ -472,6 +492,12 @@ CheckSummary execute_check(const CheckOptions& opts) {
                 const auto result = oracles::run(test_case.spec_id, target.root_path, sbx_workspace);
                 failure_msg = result.message;
                 test_passed = result.status == oracles::Status::Pass;
+                diagnostic.object = result.object.empty() ? diagnostic.object : result.object;
+                diagnostic.stimulus = result.stimulus.empty() ? diagnostic.stimulus : result.stimulus;
+                diagnostic.observation = result.observation.empty() ? result.message : result.observation;
+                diagnostic.criterion = result.criterion.empty() ? diagnostic.criterion : result.criterion;
+                diagnostic.limitations = result.limitations.empty() ? diagnostic.limitations : result.limitations;
+                diagnostic.verdict = oracles::to_string(result.status);
                 if (result.status == oracles::Status::NotApplicable) {
                     summary.skipped_tests++;
                     junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
@@ -493,6 +519,8 @@ CheckSummary execute_check(const CheckOptions& opts) {
         }
 
         if (!oracle_executed) {
+            diagnostic.observation = "no qualified executor or oracle available";
+            diagnostic.limitations = "verification was not executed";
             summary.blocked_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <error message=\"NOT_IMPLEMENTED: no qualified executor and oracle\"/>\n";
@@ -524,31 +552,41 @@ CheckSummary execute_check(const CheckOptions& opts) {
             if (exec_res.exit_code != 0) {
                 failure_msg = exec_res.stderr_output.empty() ? exec_res.stdout_output : exec_res.stderr_output;
             }
+            diagnostic.stimulus = "command executed through " + exec_res.isolation_driver;
+            diagnostic.observation = failure_msg.empty() ? exec_res.stdout_output : failure_msg;
+            diagnostic.limitations = "external adapter result; inspect evidence artifacts for full output";
         }
 
         const bool strong_isolation_missing = opts.isolation == "sandbox" &&
             !test_cmd.empty() && exec_res.isolation_status != "ENFORCED";
 
         if (exec_res.exit_code == 3) {
+            diagnostic.verdict = "NOT_APPLICABLE";
             summary.skipped_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <skipped message=\"" << (failure_msg.empty() ? "NOT_APPLICABLE" : failure_msg) << "\"/>\n";
             junit_xml << "    </testcase>\n";
         } else if (exec_res.isolation_status == "BLOCKED" || strong_isolation_missing || exec_res.exit_code == 2) {
+            diagnostic.verdict = "BLOCKED";
             summary.blocked_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <error message=\"" << (failure_msg.empty() ? "Sandbox isolation blocked" : failure_msg) << "\"/>\n";
             junit_xml << "    </testcase>\n";
         } else if (exec_res.termination == sandbox::TerminationReason::Timeout) {
+            diagnostic.verdict = "FAIL";
+            diagnostic.observation = "execution timeout exceeded";
             summary.failed_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
             junit_xml << "      <failure message=\"Timeout exceeded in sandbox\"/>\n";
             junit_xml << "    </testcase>\n";
         } else if (test_passed) {
+            diagnostic.verdict = "PASS";
+            if (diagnostic.observation.empty()) diagnostic.observation = "criterion satisfied";
             summary.passed_tests++;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\" time=\""
                       << (static_cast<double>(exec_res.duration.count()) / 1000.0) << "\"/>\n";
         } else {
+            diagnostic.verdict = "FAIL";
             summary.failed_tests++;
             std::string reason = failure_msg.empty() ? ("Non-zero exit code in sandbox: " + std::to_string(exec_res.exit_code)) : failure_msg;
             junit_xml << "    <testcase classname=\"" << test_case.spec_id << "\" name=\"" << test_case.implementation_id << "\">\n";
@@ -655,6 +693,16 @@ CheckSummary execute_check(const CheckOptions& opts) {
     sum_obj["failed"] = summary.failed_tests;
     sum_obj["skipped"] = summary.skipped_tests;
     ev_pkg["summary"] = sum_obj;
+
+    boost::json::array diagnostic_results;
+    for (const auto& result : summary.results) {
+        diagnostic_results.push_back(boost::json::object{
+            {"specification", result.specification}, {"object", result.object},
+            {"condition", result.condition}, {"stimulus", result.stimulus},
+            {"observation", result.observation}, {"criterion", result.criterion},
+            {"verdict", result.verdict}, {"limitations", result.limitations}});
+    }
+    ev_pkg["results"] = diagnostic_results;
 
     boost::json::array art_arr;
     boost::json::object art_junit;
